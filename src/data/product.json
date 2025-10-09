@@ -1,0 +1,23 @@
+{
+  "_comentario, ignorar": "Este archivo contiene los datos de un producto de ejemplo para una tienda de ropa en línea.",  
+  "id": "1",
+  "name": "Vestido Elegante de Noche",
+  "price": "$129.99",
+  "images": [
+    "fotoProductosEjemplo/Sintitulo.png",
+    "fotoProductosEjemplo/Sintitulo2.png",
+    "fotoProductosEjemplo/Sintitulo3.png",
+    "fotoProductosEjemplo/Sintitulo4.png"
+  ],
+  "sizes": ["XS", "S", "M", "L", "XL"],
+  "description": "Este vestido elegante es la opción perfecta para cualquier evento nocturno. Confeccionado con una tela fluida y ligera, ofrece una caída impecable y un movimiento etéreo.",
+  "details": [
+    "El diseño presenta un escote sutil, una cintura ceñida que realza la figura y una falda larga que fluye con cada paso.",
+    "Su color neutro lo convierte en una pieza versátil, fácil de combinar con diferentes accesorios para crear looks únicos, ideal para bodas, galas o cenas formales."
+  ],
+  "specs": {
+    "material": "95% Poliéster, 5% Spandex",
+    "care": "Lavar a mano con agua fría. No usar lejía. Secar colgado.",
+    "origin": "Hecho en Italia"
+  }
+}
