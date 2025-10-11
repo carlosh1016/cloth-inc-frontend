@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { ShoppingCart, User, Trash2 } from 'lucide-react';
 
-import Header from '../components/Header';
-import ImageGallery from '../components/ImageGallery';
-import ProductInfo from '../components/ProductInfo';
-import ProductDescription from '../components/ProductDescription';
+import Header from '../components/ProductScreen/Header';
+import ImageGallery from '../components/ProductScreen/ImageGallery';
+import ProductInfo from '../components/ProductScreen/ProductInfo';
+import ProductDescription from '../components/ProductScreen/ProductDescription';
 import productData from '../data/product.json';
 
 
