@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ShoppingCart, User, Trash2 } from 'lucide-react';
 
-import Header from '../components/ProductScreen/Header';
+import Header from '../components/Header';
 import ImageGallery from '../components/ProductScreen/ImageGallery';
 import ProductInfo from '../components/ProductScreen/ProductInfo';
 import ProductDescription from '../components/ProductScreen/ProductDescription';
@@ -11,9 +11,9 @@ import productData from '../data/product.json';
 
 
 
-export default function ProductScreen() {
+export default function Product() {
   return (
-    <div className="font-sans bg-gray-100 min-h-screen">
+    <div className="font-sans min-h-screen">
       <Header />
 
       <div className="max-w-6xl mx-auto my-8 px-4">

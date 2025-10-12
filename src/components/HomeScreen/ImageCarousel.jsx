@@ -1,9 +1,11 @@
 // ImageCarousel.jsx
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const producto = "/fotoProductosEjemplo/Sintitulo.png";
 
 export default function ImageCarousel() {
+  const navigate = useNavigate();
   const images = [producto, producto, producto]; // 3 veces la misma imagen
   const [current, setCurrent] = useState(0);
 
@@ -19,12 +21,12 @@ export default function ImageCarousel() {
         style={{ transform: `translateX(-${current * 100}%)` }}
       >
         {images.map((img, i) => (
-          <div key={i} className="flex-shrink-0 w-full h-64 md:h-96">
+          <div key={i} className="flex-shrink-0 w-full h-64 md:h-96" id={i}>
             <img
               src={img}
               alt={`Slide ${i + 1}`}
               className="w-full h-full object-cover rounded-xl transform hover:scale-105 transition-transform duration-300 cursor-pointer"
-              onClick={() => window.location.href="/producto"}
+              onClick={() => navigate(`/product/${i}`)}
             />
           </div>
         ))}

@@ -1,4 +1,4 @@
-import Header from "../components/HomeScreen/Header";
+import Header from "../components/Header";
 import ImageCarousel from "../components/HomeScreen/ImageCarousel";
 import Section from "../components/HomeScreen/Section";
 
@@ -23,8 +23,8 @@ export default function Home() {
     <div className="mx-auto max-w-7xl">
       <Header />
       <ImageCarousel />
-      <Section title="New Arrivals" products={newArrivals} />
-      <Section title="Sale" products={sale} />
+      <Section title="Nuevos Productos" products={newArrivals} />
+      <Section title="Ofertas" products={sale} />
     </div>
   );
 }

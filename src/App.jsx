@@ -1,15 +1,32 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import "./App.css";
-import ProductScreen from "./screens/ProductScreen";
-import Home from "./screens/Home";
-
+import Product from "./views/Product";
+import Home from "./views/Home";
+import Login from "./views/Login";
+import Register from "./views/Register";
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/ProductScreen" element={<ProductScreen />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/product" element={<Product />} />
       </Routes>
+      <ToastContainer 
+        position="bottom-right"
+        autoClose={4000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </BrowserRouter>
   );
 }
