@@ -1,21 +1,67 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from 'react-router-dom';
 
-export default function ProductCard({ id, name, price, image }) {
+const ProductCard = ({ product }) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(`/product/${product.id}`);
+  };
+
   return (
-    <div className="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-      {/* Imagen clickeable */}
-      <Link to={`/product/${id}`}>
-        <div
-          className="h-48 w-full bg-cover bg-center"
-          style={{ backgroundImage: `url(${image})` }}
-        ></div>
-      </Link>
+    <div
+      onClick={handleClick}
+      className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+    >
+      {/* Imagen del producto */}
+      <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
+        <img
+          src={product.image}
+          alt={product.name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        />
+        
+        {/* Badge de descuento (opcional) */}
+        {product.discount && (
+          <span className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 text-xs font-semibold rounded">
+            -{product.discount}%
+          </span>
+        )}
+      </div>
 
-      {/* Información */}
+      {/* Información del producto */}
       <div className="p-4">
-        <h3 className="text-lg font-semibold">{name}</h3>
-        <p className="mt-1">${price}</p>
+        <h3 className="text-gray-900 font-medium mb-1 line-clamp-2 group-hover:text-blue-600 transition-colors">
+          {product.name}
+        </h3>
+        
+        <div className="flex items-center justify-between">
+          <span className="text-lg font-bold text-gray-900">
+            ${product.price.toFixed(2)}
+          </span>
+          
+          {/* Indicador de colores disponibles (opcional) */}
+          {product.colors && product.colors.length > 1 && (
+            <div className="flex gap-1">
+              {product.colors.slice(0, 3).map((color, idx) => (
+                <div
+                  key={idx}
+                  className="w-4 h-4 rounded-full border border-gray-300"
+                  style={{ backgroundColor: color.toLowerCase() }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Tallas disponibles (opcional) */}
+        {product.size && (
+          <div className="mt-2 text-xs text-gray-500">
+            Sizes: {product.size.join(', ')}
+          </div>
+        )}
       </div>
     </div>
   );
-}
+};
+
+export default ProductCard;

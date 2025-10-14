@@ -1,30 +1,54 @@
+import { useState, useEffect } from "react";
 import Header from "../components/Header";
 import ImageCarousel from "../components/HomeScreen/ImageCarousel";
 import Section from "../components/HomeScreen/Section";
-
-const producto = "/fotoProductosEjemplo/Sintitulo.png";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function Home() {
-  const newArrivals = [
-    { title: "Urban Chic", image: producto },
-    { title: "Boho Bliss", image: producto },
-    { title: "Athletic Edge", image: producto },
-    { title: "Classic Tailored", image: producto },
-  ];
+  const [cloths, setCloths] = useState([]);
 
-  const sale = [
-    { title: "Summer Dresses", image: producto },
-    { title: "Men's Casual", image: producto },
-    { title: "Kids' Collection", image: producto },
-    { title: "Accessories", image: producto },
-  ];
+  useEffect(() => {
+    const requestOptions = {
+      method: "GET",
+      redirect: "follow"
+    };
+
+    fetch("http://localhost:4003/cloth", requestOptions)
+      .then(response => {
+        if (!response.ok) {
+          if (response.status === 404) {
+            toast.error("Prenda no encontrada", { position: "bottom-right" });
+          } else {
+            toast.error(`Error del servidor: ${response.status}`, { position: "bottom-right" });
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        setCloths(data); // Guardamos los datos en el estado
+      })
+      .catch(err => console.error(err));
+  }, []);
+
+  // Ordenar y filtrar usando el estado actualizado
+  const clothsNew = [...cloths]
+  .sort((a, b) => b.id - a.id)
+  .slice(0, 4);
+  
+  const clothsSale = [...cloths]
+  .filter(cloth => cloth.discount > 0)
+  .sort((a, b) => b.discount - a.discount)
+  .slice(0, 4);
 
   return (
     <div className="mx-auto max-w-7xl">
+      <ToastContainer />
       <Header />
       <ImageCarousel />
-      <Section title="Nuevos Productos" products={newArrivals} />
-      <Section title="Ofertas" products={sale} />
+      <Section title="Nuevos Productos" products={clothsNew} />
+      <Section title="Ofertas" products={clothsSale} />
     </div>
   );
 }
