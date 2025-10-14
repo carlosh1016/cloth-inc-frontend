@@ -1,7 +1,6 @@
-// src/screens/ProductScreen.jsx
+// src/views/Product.jsx
 
-import { useState } from 'react';
-import { ShoppingCart, User, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 import Header from '../components/Header';
 import ImageGallery from '../components/ProductScreen/ImageGallery';
@@ -15,9 +14,8 @@ import { useParams } from 'react-router-dom';
 export default function Product() {
   const { id: productId } = useParams(); 
   const [product, setProduct] = useState(null); 
-  const [loading, setLoading] = useState(true); 
-
-  console.log('ID del Producto a buscar:', productId);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null); 
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -25,13 +23,14 @@ export default function Product() {
         setLoading(true); 
         setError(null); 
         
-        const response = await fetch(`/api/products/cloth/${productId}`); 
+        const response = await fetch(`http://localhost:4003/cloth/${productId}`); 
         
         if (!response.ok) {
           throw new Error(`Error al cargar el producto: ${response.status}`);
         }
         
         const data = await response.json();
+        console.log('Producto recibido del backend:', data);
         setProduct(data); 
         
       } catch (err) {
@@ -80,6 +79,9 @@ export default function Product() {
   }
 
 
+  // Adaptar la estructura del backend a lo que esperan los componentes
+  const images = product.image ? [product.image] : [];
+  
   return (
     <div className="font-sans min-h-screen">
       <Header />
@@ -88,7 +90,7 @@ export default function Product() {
         <div className="bg-white shadow-xl rounded-lg overflow-hidden">
           <main className="grid grid-cols-1 md:grid-cols-2">
             
-            <ImageGallery images={product.images} />
+            <ImageGallery images={images} />
             <ProductInfo 
               name={product.name} 
               price={product.price} 

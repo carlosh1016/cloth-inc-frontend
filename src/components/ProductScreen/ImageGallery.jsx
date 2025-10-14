@@ -1,8 +1,22 @@
 // src/components/ImageGallery.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-export default function ImageGallery({ images }) {
-  const [mainImage, setMainImage] = useState(images[0]);
+export default function ImageGallery({ images = [] }) {
+  const [mainImage, setMainImage] = useState(images[0] || '');
+
+  useEffect(() => {
+    if (images && images.length > 0) {
+      setMainImage(images[0]);
+    }
+  }, [images]);
+
+  if (!images || images.length === 0) {
+    return (
+      <div className="p-4 md:p-6 flex items-center justify-center">
+        <p className="text-gray-500">No hay imágenes disponibles</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6">
