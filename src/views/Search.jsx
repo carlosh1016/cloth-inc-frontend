@@ -1,17 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import FilterSidebar from '../components/ShopScreen/FilterSidebar';
-import ProductGrid from '../components/ShopScreen/ProductGrid';
-import Header from '../components/ShopScreen/Header';
+import FilterSidebar from '../components/SearchScreen/FilterSidebar';
+import ProductGrid from '../components/SearchScreen/ProductGrid';
+import Header from '../components/Header';
 
-const Shop = () => {
+const Search = () => {
   const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [filters, setFilters] = useState({
     categories: [],
-    colors: [],
-    styles: [],
     brands: [],
     sizes: [],
     searchQuery: ''
@@ -46,7 +44,6 @@ const Shop = () => {
           price: 49.99,
           image: '/fotoProductosEjemplo/Sintitulo.png',
           category: 'Dresses',
-          color: 'Green',
           size: ['S', 'M', 'L'],
           brand: 'Style Haven'
         },
@@ -56,7 +53,6 @@ const Shop = () => {
           price: 59.99,
           image: '/fotoProductosEjemplo/Sintitulo2.png',
           category: 'Bottoms',
-          color: 'Blue',
           size: ['XS', 'S', 'M', 'L', 'XL'],
           brand: 'Urban Threads'
         },
@@ -66,7 +62,6 @@ const Shop = () => {
           price: 69.99,
           image: '/fotoProductosEjemplo/Sintitulo3.png',
           category: 'Tops',
-          color: 'White',
           size: ['S', 'M', 'L'],
           brand: 'Chic Boutique'
         },
@@ -76,7 +71,6 @@ const Shop = () => {
           price: 129.99,
           image: '/fotoProductosEjemplo/Sintitulo4.png',
           category: 'Outerwear',
-          color: 'Black',
           size: ['S', 'M', 'L'],
           brand: 'Urban Threads'
         },
@@ -86,7 +80,6 @@ const Shop = () => {
           price: 29.99,
           image: '/fotoProductosEjemplo/Sintitulo.png',
           category: 'Tops',
-          color: 'White',
           size: ['XS', 'S', 'M', 'L', 'XL'],
           brand: 'Active Gear'
         },
@@ -96,7 +89,6 @@ const Shop = () => {
           price: 39.99,
           image: '/fotoProductosEjemplo/Sintitulo3.png',
           category: 'Bottoms',
-          color: 'Black',
           size: ['XS', 'S', 'M', 'L'],
           brand: 'Style Haven'
         }
@@ -117,11 +109,6 @@ const Shop = () => {
     // Filtro por categoría
     if (filters.categories.length > 0) {
       filtered = filtered.filter(p => filters.categories.includes(p.category));
-    }
-
-    // Filtro por color
-    if (filters.colors.length > 0) {
-      filtered = filtered.filter(p => filters.colors.includes(p.color));
     }
 
     // Filtro por marca
@@ -167,8 +154,6 @@ const Shop = () => {
   const clearFilters = () => {
     setFilters({
       categories: [],
-      colors: [],
-      styles: [],
       brands: [],
       sizes: [],
       searchQuery: ''
@@ -178,7 +163,7 @@ const Shop = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">Loading...</div>
+        <div className="text-xl">Cargando...</div>
       </div>
     );
   }
@@ -204,7 +189,7 @@ const Shop = () => {
           {/* Grid de productos */}
           <main className="flex-1">
             <div className="mb-4 text-gray-600">
-              Showing {filteredProducts.length} of {products.length} products
+              Mostrando {filteredProducts.length} de {products.length} productos
             </div>
             <ProductGrid products={filteredProducts} />
           </main>
@@ -214,4 +199,4 @@ const Shop = () => {
   );
 };
 
-export default Shop;
+export default Search;

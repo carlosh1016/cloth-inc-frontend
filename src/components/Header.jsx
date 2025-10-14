@@ -1,9 +1,10 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ShirtIcon, LogInIcon, LogOutIcon, SearchIcon, ShoppingCartIcon, StoreIcon } from "lucide-react";
 
 export default function Header() {
   const token = localStorage.getItem("cloth-inc-token");
   const userRole = localStorage.getItem("cloth-inc-role");
+  const navigate = useNavigate();
   return (
     <header className="flex items-center justify-between border-b border-b-primary/20 dark:border-b-primary/30 px-10 py-4 bg-background-light dark:bg-background-dark">
       
@@ -24,6 +25,7 @@ export default function Header() {
             type="text"
             placeholder="Buscar productos y marcas"
             className="w-full rounded-lg border border-gray-300 bg-background-light py-2.5 pl-10 pr-4 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onClick={() => navigate("/search")}
           />
         </div>
       </div>

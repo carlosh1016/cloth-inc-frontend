@@ -1,7 +1,5 @@
 const FilterSidebar = ({ filters, onFilterChange, onClearFilters }) => {
   const categories = ['Tops', 'Bottoms', 'Dresses', 'Outerwear', 'Accessories'];
-  const colors = ['White', 'Black', 'Red', 'Blue', 'Green'];
-  const styles = ['Casual', 'Formal', 'Sporty', 'Vintage', 'Streetwear'];
   const brands = ['Style Haven', 'Urban Threads', 'Chic Boutique', 'Active Gear'];
   const sizes = ['XS', 'S', 'M', 'L', 'XL'];
 
@@ -24,39 +22,9 @@ const FilterSidebar = ({ filters, onFilterChange, onClearFilters }) => {
     </div>
   );
 
-  const ColorFilter = () => {
-    const colorMap = {
-      White: 'bg-white border border-gray-300',
-      Black: 'bg-black',
-      Red: 'bg-red-500',
-      Blue: 'bg-blue-500',
-      Green: 'bg-green-500'
-    };
-
-    return (
-      <div className="mb-6">
-        <h3 className="font-semibold text-gray-900 mb-3">Color</h3>
-        <div className="flex flex-wrap gap-2">
-          {colors.map((color) => (
-            <button
-              key={color}
-              onClick={() => onFilterChange('colors', color)}
-              className={`w-8 h-8 rounded-full ${colorMap[color]} ${
-                filters.colors.includes(color)
-                  ? 'ring-2 ring-blue-600 ring-offset-2'
-                  : 'hover:ring-2 hover:ring-gray-300'
-              }`}
-              title={color}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   const SizeFilter = () => (
     <div className="mb-6">
-      <h3 className="font-semibold text-gray-900 mb-3">Size</h3>
+      <h3 className="font-semibold text-gray-900 mb-3">Tallas</h3>
       <div className="flex flex-wrap gap-2">
         {sizes.map((size) => (
           <button
@@ -78,31 +46,23 @@ const FilterSidebar = ({ filters, onFilterChange, onClearFilters }) => {
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-bold text-gray-900">Filters</h2>
+        <h2 className="text-lg font-bold text-gray-900">Filtros</h2>
         <button
           onClick={onClearFilters}
           className="text-sm text-blue-600 hover:text-blue-800"
         >
-          Clear All
+          Limpiar todos
         </button>
       </div>
 
       <FilterSection
-        title="Categories"
+        title="Categorías"
         items={categories}
         filterKey="categories"
       />
 
-      <ColorFilter />
-
       <FilterSection
-        title="Men's Style"
-        items={styles}
-        filterKey="styles"
-      />
-
-      <FilterSection
-        title="Brand"
+        title="Marcas"
         items={brands}
         filterKey="brands"
       />
