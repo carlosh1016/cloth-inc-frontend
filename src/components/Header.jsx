@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
-import { ShirtIcon, LogInIcon, LogOutIcon, SearchIcon } from "lucide-react";
+import { ShirtIcon, LogInIcon, LogOutIcon, SearchIcon, ShoppingCartIcon, StoreIcon } from "lucide-react";
 
 export default function Header() {
   const token = localStorage.getItem("cloth-inc-token");
+  const userRole = localStorage.getItem("cloth-inc-role");
   return (
     <header className="flex items-center justify-between border-b border-b-primary/20 dark:border-b-primary/30 px-10 py-4 bg-background-light dark:bg-background-dark">
       
@@ -31,14 +32,16 @@ export default function Header() {
       {/* Botones y avatar */}
       {token ? (
       <div className="flex items-center gap-4">
+        {userRole === "ROLE_SELLER" && (
+          <button className="flex items-center justify-center rounded-lg h-10 w-10 text-black dark:text-black hover:bg-gray-100 dark:hover:bg-gray-200 cursor-pointer transition-colors">
+            <StoreIcon className="h-8 w-8" />
+          </button>
+        )}
         <button className="flex items-center justify-center rounded-lg h-10 w-10 text-black dark:text-black hover:bg-gray-100 dark:hover:bg-gray-200 cursor-pointer transition-colors">
-          <span className="material-symbols-outlined">location_on</span>
+          <ShoppingCartIcon className="h-8 w-8" />
         </button>
         <button className="flex items-center justify-center rounded-lg h-10 w-10 text-black dark:text-black hover:bg-gray-100 dark:hover:bg-gray-200 cursor-pointer transition-colors">
-          <span className="material-symbols-outlined">shopping_cart</span>
-        </button>
-        <button className="flex items-center justify-center rounded-lg h-10 w-10 text-black dark:text-black hover:bg-gray-100 dark:hover:bg-gray-200 cursor-pointer transition-colors">
-          <Link to="/login"><LogOutIcon className="h-8 w-8" onClick={() => localStorage.removeItem("cloth-inc-token")} /></Link>
+          <Link to="/login"><LogOutIcon className="h-8 w-8" onClick={() => localStorage.removeItem("cloth-inc-token") && localStorage.removeItem("cloth-inc-role")} /></Link>
         </button>
       </div>
       ) : (

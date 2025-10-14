@@ -10,6 +10,7 @@ const RegisterForm = () => {
     const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [isVendedor, setIsVendedor] = useState(false);
     const navigate = useNavigate();
     
     const handleSubmit = (e) => {
@@ -43,7 +44,7 @@ const RegisterForm = () => {
                 surname, 
                 phone, 
                 email, 
-                role: "ROLE_USER" 
+                role: isVendedor ? "ROLE_SELLER" : "ROLE_USER" 
             }),
             redirect: "follow"
         };
@@ -72,6 +73,7 @@ const RegisterForm = () => {
         .then(data => {
             console.log("Respuesta del servidor:", data);
             localStorage.setItem("cloth-inc-token", data.access_token);
+            localStorage.setItem("cloth-inc-role", data.role);
             toast.success("¡Registro exitoso! Redirigiendo...", {
                 position: "bottom-right",
                 autoClose: 1500
@@ -180,6 +182,26 @@ const RegisterForm = () => {
                             className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-sky-600 sm:text-sm/6"
                             />
                         </div>
+                        <div class="inline-flex items-center">
+                            <label class="flex items-center cursor-pointer relative" for="isVendedor">
+                                <input type="checkbox"
+                                checked={isVendedor}
+                                onChange={(e) => setIsVendedor(e.target.checked)}
+                                class="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow hover:shadow-md border border-slate-300 checked:bg-slate-800 checked:border-slate-800"
+                                id="isVendedor" />
+                                <span class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"
+                                    stroke="currentColor" stroke-width="1">
+                                    <path fill-rule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clip-rule="evenodd"></path>
+                                </svg>
+                                </span>
+                            </label>
+                            <label class="cursor-pointer ml-2 font-medium font-semibold text-gray-900 text-sm" for="isVendedor">
+                                ¿Eres vendedor?
+                            </label>
+                            </div>
                         <div>
                             <button
                             type="submit" 
@@ -190,7 +212,7 @@ const RegisterForm = () => {
                             </button>
                         </div>
                     </form>
-                    <p className="mt-2 text-center text-gray-500 text-sm/6">
+                    <p className="mt-2 text-center text-gray-500 text-sm/6 mb-16">
                         Ya tienes cuenta? <Link to="/login" className="font-semibold text-sky-600 hover:text-sky-500">Iniciar Sesión</Link>
                     </p>
                 </div>

@@ -44,6 +44,7 @@ const LoginForm = () => {
         .then(data => {
             console.log("Respuesta del servidor:", data);
             localStorage.setItem("cloth-inc-token", data.access_token);
+            localStorage.setItem("cloth-inc-role", data.role);
             toast.success("¡Inicio de sesión exitoso! Redirigiendo...", {
                 position: "bottom-right",
                 autoClose: 1500
