@@ -7,6 +7,7 @@ import Home from "./views/Home";
 import Login from "./views/Login";
 import Register from "./views/Register";
 import Search from './views/Search';
+import Shop from './views/Shop';
 function App() {
   return (
     <BrowserRouter>
@@ -16,6 +17,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/product/:id" element={<Product />} />
 	      <Route path="/search" element={<Search />} />
+	<Route path="/shop" element={<Shop />} />
       </Routes>
       <ToastContainer 
         position="bottom-right"

@@ -36,6 +36,7 @@ export default function Header() {
       <div className="flex items-center gap-4">
         {userRole === "ROLE_SELLER" && (
           <button className="flex items-center justify-center rounded-lg h-10 w-10 text-black dark:text-black hover:bg-gray-100 dark:hover:bg-gray-200 cursor-pointer transition-colors">
+	OnClick={() => navigate("/shop")}
             <StoreIcon className="h-8 w-8" />
           </button>
         )}
