@@ -3,8 +3,17 @@ import Header from "../components/Header"; // Asegúrate de tener el componente 
 import FilterSidebar from "../components/SearchScreen/FilterSidebar";
 import ProductGrid from "../components/SearchScreen/ProductGrid";
 
-const API_URL = "http://localhost:8080/api/cloths";
+const API_URL = "http://localhost:4003/cloth";
+const token = localStorage.getItem("cloth-inc-token");
 
+const requestOptions = {
+  method: "GET",
+  headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+  },
+  redirect: "follow"
+};
 const Search = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -28,7 +37,7 @@ const Search = () => {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(API_URL);
+        const response = await fetch(API_URL, requestOptions);
         if (!response.ok) throw new Error("Error al obtener productos");
         const data = await response.json();
         setProducts(data);
@@ -62,7 +71,7 @@ const Search = () => {
 
     if (filters.sizes.length > 0) {
       filtered = filtered.filter(p =>
-        p.sizes?.some(s => filters.sizes.includes(s.name) && s.stock > 0)
+        filters.sizes.includes(p.size)
       );
     }
 
@@ -74,7 +83,7 @@ const Search = () => {
     }
 
     if (filters.stockOnly) {
-      filtered = filtered.filter(p => p.sizes?.some(s => s.stock > 0));
+      filtered = filtered.filter(p => p.stock > 0);
     }
 
     if (filters.discountOnly) {

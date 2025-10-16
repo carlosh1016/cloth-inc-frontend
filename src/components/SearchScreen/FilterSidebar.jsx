@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 
 const FilterSidebar = ({ filters, onFilterChange, onClearFilters }) => {
-  const [availableSizes, setAvailableSizes] = useState([]);
+  // Tallas estáticas (no requieren endpoint)
+  const availableSizes = ["XS", "S", "M", "L", "XL", "XXL"];
+  
   const [availableCategories, setAvailableCategories] = useState([]);
   const [availableBrands, setAvailableBrands] = useState([]);
 
@@ -9,28 +11,22 @@ const FilterSidebar = ({ filters, onFilterChange, onClearFilters }) => {
   const [maxPrice, setMaxPrice] = useState("");
   const [stockOnly, setStockOnly] = useState(false);
   const [discountOnly, setDiscountOnly] = useState(false);
-  const [selectedSizes, setSelectedSizes] = useState([]);
 
-  // 🔹 Traer tallas desde API
-  useEffect(() => {
-    const fetchSizes = async () => {
-      try {
-        const res = await fetch("http://localhost:8080/api/sizes");
-        if (!res.ok) throw new Error("Error al cargar tallas");
-        const data = await res.json();
-        setAvailableSizes(data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchSizes();
-  }, []);
+  const token = localStorage.getItem("cloth-inc-token");
+  const requestOptions = {
+    method: "GET",
+    headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+    },
+    redirect: "follow"
+  };
 
   // 🔹 Traer categorías desde API
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch("http://localhost:8080/api/categories");
+        const res = await fetch("http://localhost:4003/category", requestOptions);
         if (!res.ok) throw new Error("Error al cargar categorías");
         const data = await res.json();
         setAvailableCategories(data);
@@ -45,7 +41,7 @@ const FilterSidebar = ({ filters, onFilterChange, onClearFilters }) => {
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const res = await fetch("http://localhost:8080/api/shops");
+        const res = await fetch("http://localhost:4003/shops", requestOptions);
         if (!res.ok) throw new Error("Error al cargar tiendas");
         const data = await res.json();
         setAvailableBrands(data);
@@ -56,28 +52,19 @@ const FilterSidebar = ({ filters, onFilterChange, onClearFilters }) => {
     fetchBrands();
   }, []);
 
-  // 🔹 Actualizar filtros de talla
-  useEffect(() => {
-    onFilterChange("sizes", selectedSizes);
-  }, [selectedSizes]);
-
-  const handleSizeToggle = (size) => {
-    setSelectedSizes((prev) =>
-      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
-    );
-  };
-
   const handlePriceChange = () => {
     onFilterChange("minPrice", minPrice);
     onFilterChange("maxPrice", maxPrice);
   };
 
-  const handleStockChange = () => {
-    onFilterChange("stockOnly", stockOnly);
+  const handleStockChange = (value) => {
+    setStockOnly(value);
+    onFilterChange("stockOnly", value);
   };
 
-  const handleDiscountChange = () => {
-    onFilterChange("discountOnly", discountOnly);
+  const handleDiscountChange = (value) => {
+    setDiscountOnly(value);
+    onFilterChange("discountOnly", value);
   };
 
   const handleClear = () => {
@@ -85,7 +72,6 @@ const FilterSidebar = ({ filters, onFilterChange, onClearFilters }) => {
     setMaxPrice("");
     setStockOnly(false);
     setDiscountOnly(false);
-    setSelectedSizes([]);
     onClearFilters();
   };
 
@@ -118,22 +104,19 @@ const FilterSidebar = ({ filters, onFilterChange, onClearFilters }) => {
     <div className="mb-6">
       <h3 className="font-semibold text-gray-900 mb-3">Tallas</h3>
       <div className="flex flex-wrap gap-2">
-        {availableSizes.map((size) => {
-          const value = size.name || size;
-          return (
-            <button
-              key={value}
-              onClick={() => handleSizeToggle(value)}
-              className={`px-4 py-2 border rounded ${
-                selectedSizes.includes(value)
-                  ? "bg-black text-white border-black"
-                  : "bg-white text-gray-700 border-gray-300 hover:border-black"
-              }`}
-            >
-              {value}
-            </button>
-          );
-        })}
+        {availableSizes.map((size) => (
+          <button
+            key={size}
+            onClick={() => onFilterChange("sizes", size)}
+            className={`px-4 py-2 border rounded ${
+              filters.sizes?.includes(size)
+                ? "bg-black text-white border-black"
+                : "bg-white text-gray-700 border-gray-300 hover:border-black"
+            }`}
+          >
+            {size}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -179,10 +162,7 @@ const FilterSidebar = ({ filters, onFilterChange, onClearFilters }) => {
           <input
             type="checkbox"
             checked={stockOnly}
-            onChange={(e) => {
-              setStockOnly(e.target.checked);
-              handleStockChange();
-            }}
+            onChange={(e) => handleStockChange(e.target.checked)}
           />
           Solo productos en stock
         </label>
@@ -194,10 +174,7 @@ const FilterSidebar = ({ filters, onFilterChange, onClearFilters }) => {
           <input
             type="checkbox"
             checked={discountOnly}
-            onChange={(e) => {
-              setDiscountOnly(e.target.checked);
-              handleDiscountChange();
-            }}
+            onChange={(e) => handleDiscountChange(e.target.checked)}
           />
           Solo con descuento
         </label>
