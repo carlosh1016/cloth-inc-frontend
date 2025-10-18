@@ -9,7 +9,7 @@ export default function Home() {
   const [cloths, setCloths] = useState([]);
 
   useEffect(() => {
-    // 🔹 OPCIÓN 1: USAR DATOS HARDCODEADOS (para probar sin backend)
+    // HARDCODED DATA
     const mockCloths = [
       {
         id: 1,
@@ -73,10 +73,9 @@ export default function Home() {
       }
     ];
 
-    // ✅ Cargar los datos hardcodeados
     setCloths(mockCloths);
 
-    // 🔹 OPCIÓN 2: USAR FETCH DESDE EL BACKEND (comentado por ahora)
+    // CODIGO PARA FETCH REAL
     /*
     const requestOptions = {
       method: "GET",
@@ -96,7 +95,7 @@ export default function Home() {
         return response.json();
       })
       .then(data => {
-        // ✅ Cargar los datos del backend
+        
         setCloths(data);
       })
       .catch(err => console.error(err));
