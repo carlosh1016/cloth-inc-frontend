@@ -9,6 +9,75 @@ export default function Home() {
   const [cloths, setCloths] = useState([]);
 
   useEffect(() => {
+    // 🔹 OPCIÓN 1: USAR DATOS HARDCODEADOS (para probar sin backend)
+    const mockCloths = [
+      {
+        id: 1,
+        name: 'Flowy Summer Dress',
+        price: 49.99,
+        image: '/fotoProductosEjemplo/Sintitulo.png',
+        category: 'Dresses',
+        size: ['S', 'M', 'L'],
+        brand: 'Style Haven',
+        discount: 0
+      },
+      {
+        id: 2,
+        name: 'Classic Denim Jeans',
+        price: 59.99,
+        image: '/fotoProductosEjemplo/Sintitulo2.png',
+        category: 'Bottoms',
+        size: ['XS', 'S', 'M', 'L', 'XL'],
+        brand: 'Urban Threads',
+        discount: 20
+      },
+      {
+        id: 3,
+        name: 'Cozy Knit Sweater',
+        price: 69.99,
+        image: '/fotoProductosEjemplo/Sintitulo3.png',
+        category: 'Tops',
+        size: ['S', 'M', 'L'],
+        brand: 'Chic Boutique',
+        discount: 10
+      },
+      {
+        id: 4,
+        name: 'Stylish Leather Jacket',
+        price: 129.99,
+        image: '/fotoProductosEjemplo/Sintitulo4.png',
+        category: 'Outerwear',
+        size: ['S', 'M', 'L'],
+        brand: 'Urban Threads',
+        discount: 0
+      },
+      {
+        id: 5,
+        name: 'Comfortable Cotton T-Shirt',
+        price: 29.99,
+        image: '/fotoProductosEjemplo/Sintitulo.png',
+        category: 'Tops',
+        size: ['XS', 'S', 'M', 'L', 'XL'],
+        brand: 'Active Gear',
+        discount: 15
+      },
+      {
+        id: 6,
+        name: 'Versatile Midi Skirt',
+        price: 39.99,
+        image: '/fotoProductosEjemplo/Sintitulo3.png',
+        category: 'Bottoms',
+        size: ['XS', 'S', 'M', 'L'],
+        brand: 'Style Haven',
+        discount: 0
+      }
+    ];
+
+    // ✅ Cargar los datos hardcodeados
+    setCloths(mockCloths);
+
+    // 🔹 OPCIÓN 2: USAR FETCH DESDE EL BACKEND (comentado por ahora)
+    /*
     const requestOptions = {
       method: "GET",
       redirect: "follow"
@@ -27,20 +96,22 @@ export default function Home() {
         return response.json();
       })
       .then(data => {
-        setCloths(data); // Guardamos los datos en el estado
+        // ✅ Cargar los datos del backend
+        setCloths(data);
       })
       .catch(err => console.error(err));
+    */
   }, []);
 
   // Ordenar y filtrar usando el estado actualizado
   const clothsNew = [...cloths]
-  .sort((a, b) => b.id - a.id)
-  .slice(0, 4);
-  
+    .sort((a, b) => b.id - a.id)
+    .slice(0, 4);
+
   const clothsSale = [...cloths]
-  .filter(cloth => cloth.discount > 0)
-  .sort((a, b) => b.discount - a.discount)
-  .slice(0, 4);
+    .filter(cloth => cloth.discount > 0)
+    .sort((a, b) => b.discount - a.discount)
+    .slice(0, 4);
 
   return (
     <div className="mx-auto max-w-7xl">
