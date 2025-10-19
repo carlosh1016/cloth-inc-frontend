@@ -14,11 +14,13 @@ const ProductCard = ({ product }) => {
     >
       {/* Imagen del producto */}
       <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
+        {product.imageBase64 && (
+          <img
+            src={`data:image/jpeg;base64,${product.imageBase64}`}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        )}
         
         {/* Badge de descuento (opcional) */}
         {product.discount && (
