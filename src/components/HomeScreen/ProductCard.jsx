@@ -40,7 +40,7 @@ const ProductCard = ({ product }) => {
           </span>
           
           {/* Indicador de colores disponibles (opcional) */}
-          {product.colors && product.colors.length > 1 && (
+          {product.colors && Array.isArray(product.colors) && product.colors.length > 1 && (
             <div className="flex gap-1">
               {product.colors.slice(0, 3).map((color, idx) => (
                 <div
@@ -56,7 +56,7 @@ const ProductCard = ({ product }) => {
         {/* Tallas disponibles (opcional) */}
         {product.size && (
           <div className="mt-2 text-xs text-gray-500">
-            Sizes: {product.size.join(', ')}
+            Sizes: {Array.isArray(product.size) ? product.size.join(', ') : product.size}
           </div>
         )}
       </div>
