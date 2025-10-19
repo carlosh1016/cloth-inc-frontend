@@ -82,30 +82,23 @@ export default function Product() {
   // Adaptar la estructura del backend a lo que esperan los componentes
   const images = product.imageBase64 
     ? [`data:image/jpeg;base64,${product.imageBase64}`]
-    : ["/public/fotoProductosEjemplo/Sintitulo.png"];
+    : [];
   
   return (
-    <div className="font-sans min-h-screen">
+    <div className="font-sans min-h-screen bg-gray-50">
       <Header />
 
-      <div className="max-w-6xl mx-auto my-8 px-4">
+      <div className="max-w-7xl mx-auto my-8 px-4">
         <div className="bg-white shadow-xl rounded-lg overflow-hidden">
-          <main className="grid grid-cols-1 md:grid-cols-2">
-            
+          <main className="grid grid-cols-1 lg:grid-cols-2">
             <ImageGallery images={images} />
-            <ProductInfo 
-              name={product.name} 
-              price={product.price} 
-              sizes={product.sizes} 
-            />
+            <ProductInfo product={product} />
           </main>
           
           <ProductDescription 
             description={product.description}
-            details={product.details}
-            specs={product.specs}
+            product={product}
           />
-
         </div>
       </div>
     </div>
