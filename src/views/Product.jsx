@@ -80,7 +80,9 @@ export default function Product() {
 
 
   // Adaptar la estructura del backend a lo que esperan los componentes
-  const images = product.image ? [product.image] : [];
+  const images = product.imageBase64 
+    ? [`data:image/jpeg;base64,${product.imageBase64}`]
+    : ["/public/fotoProductosEjemplo/Sintitulo.png"];
   
   return (
     <div className="font-sans min-h-screen">

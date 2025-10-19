@@ -4,14 +4,15 @@ import EmptyShop from "../components/ShopScreen/EmptyShop";
 import ShopDashboard from "../components/ShopScreen/ShopDashboard";
 
 const Shop = () => {
-  const [user, setUser] = useState(null);
   const [shop, setShop] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const token = localStorage.getItem("cloth-inc-token");
   const role = localStorage.getItem("cloth-inc-role");
+  const shopId = localStorage.getItem("cloth-inc-shop-id");
 
+  // Verificar autenticación y rol al montar el componente
   useEffect(() => {
     if (!token) {
       setError("No estás autenticado.");
@@ -19,88 +20,72 @@ const Shop = () => {
       return;
     }
 
-    //obtener datos del usuario autenticado desde el backend
-    const fetchUser = async () => {
-      try {
-        const res = await fetch("http://localhost:8080/users/", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+    if (role !== "ROLE_SELLER") {
+      setError("Solo los vendedores pueden acceder a esta página.");
+      setLoading(false);
+      return;
+    }
 
-        if (!res.ok) throw new Error("Error al obtener usuario");
-        const userData = await res.json();
-        setUser(userData);
-      } catch (err) {
-        console.error(err);
-        setError(err.message);
-      }
-    };
+    // Si no hay shopId o es null, el usuario no tiene tienda
+    if (!shopId || shopId === "null") {
+      setShop(null);
+      setLoading(false);
+      return;
+    }
 
-    fetchUser();
-  }, [token]);
-
-  //verificar si el usuario tiene tienda asociada (ownership)
-  useEffect(() => {
-    const fetchOwnership = async () => {
-      if (!user) return;
-
+    // Obtener datos de la tienda
+    const fetchShop = async () => {
       try {
         setLoading(true);
-
-        const ownershipRes = await fetch(`http://localhost:8080/ownership/user/${user.id}`, {
+        const shopRes = await fetch(`http://localhost:4003/shops/${shopId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
-        if (ownershipRes.status === 404) {
-          setShop(null); // no tiene tienda
-        } else if (ownershipRes.ok) {
-          const ownershipData = await ownershipRes.json();
-          const shopId = ownershipData.shop.id;
-
-          const shopRes = await fetch(`http://localhost:8080/shops/${shopId}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          if (!shopRes.ok) throw new Error("Error al obtener tienda");
-          const shopData = await shopRes.json();
-          setShop(shopData);
-        } else {
-          throw new Error("Error al obtener ownership");
+        if (!shopRes.ok) {
+          throw new Error("Error al obtener los datos de la tienda");
         }
+
+        const shopData = await shopRes.json();
+        setShop(shopData);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching shop:", err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    if (user && role === "ROLE_SELLER") {
-      fetchOwnership();
-    }
-  }, [user, token, role]);
+    fetchShop();
+  }, [token, shopId, role]);
 
+  // Estados de carga y error
   if (loading) {
-    return <div className="p-8 text-gray-500">Cargando tienda...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-500 text-lg">Cargando tienda...</div>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className="p-8 text-red-600">
-        <p>Error: {error}</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-red-600 text-center">
+          <p className="text-xl font-semibold mb-2">Error</p>
+          <p>{error}</p>
+        </div>
       </div>
     );
   }
 
   if (role !== "ROLE_SELLER") {
     return (
-      <div className="p-8 text-gray-600">
-        <p>Solo los vendedores pueden acceder a esta página.</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600 text-center">
+          <p className="text-xl">Solo los vendedores pueden acceder a esta página.</p>
+        </div>
       </div>
     );
   }
@@ -110,8 +95,8 @@ const Shop = () => {
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {!shop ? (
-          <EmptyShop user={user} onShopCreated={setShop} />
+        {shop === null ? (
+          <EmptyShop onShopCreated={setShop} />
         ) : (
           <ShopDashboard shop={shop} />
         )}

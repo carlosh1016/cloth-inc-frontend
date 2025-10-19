@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
+import CreateClothModal from "./CreateClothModal"; // ← Importar el modal
 
-const API_URL = "http://localhost:8080";
+const API_URL = "http://localhost:4003";
 
 const ShopDashboard = ({ shop }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false); // ← Agregar estado
   const token = localStorage.getItem("cloth-inc-token");
 
   // Obtener los productos de esta tienda
@@ -13,12 +15,22 @@ const ShopDashboard = ({ shop }) => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`${API_URL}/cloths/shop/${shop.id}`, {
+        const res = await fetch(`${API_URL}/cloth/shop/${shop.id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        if (!res.ok) throw new Error("Error al cargar productos");
+        
+        // Si no hay productos (204), no es un error
+        if (res.status === 204) {
+          setProducts([]);
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error("Error al cargar productos");
+        }
+
         const data = await res.json();
         setProducts(data);
       } catch (err) {
@@ -32,6 +44,11 @@ const ShopDashboard = ({ shop }) => {
     fetchProducts();
   }, [shop.id, token]);
 
+  // ← Agregar función para manejar producto creado
+  const handleProductCreated = (newProduct) => {
+    setProducts([...products, newProduct]);
+  };
+
   return (
     <div className="flex flex-col lg:flex-row gap-8">
       {/* Sidebar con info de la tienda */}
@@ -42,7 +59,7 @@ const ShopDashboard = ({ shop }) => {
 
         <button
           className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors"
-          onClick={() => alert("Abrir modal para crear producto")}
+          onClick={() => setShowCreateModal(true)} // ← Cambiar el onClick
         >
           Añadir producto
         </button>
@@ -67,7 +84,11 @@ const ShopDashboard = ({ shop }) => {
               className="border rounded-lg p-4 hover:shadow-md transition-shadow"
             >
               <img
-                src={product.image || "/public/fotoProductosEjemplo/Sintitulo.png"}
+                src={
+                  product.imageBase64 
+                    ? `data:image/jpeg;base64,${product.imageBase64}` 
+                    : "/public/fotoProductosEjemplo/Sintitulo.png"
+                }
                 alt={product.name}
                 className="w-full h-48 object-cover rounded mb-3"
               />
@@ -97,6 +118,15 @@ const ShopDashboard = ({ shop }) => {
           ))}
         </div>
       </main>
+
+      {/* ← Agregar el modal al final */}
+      {showCreateModal && (
+        <CreateClothModal
+          onClose={() => setShowCreateModal(false)}
+          onProductCreated={handleProductCreated}
+          shopId={shop.id}
+        />
+      )}
     </div>
   );
 };

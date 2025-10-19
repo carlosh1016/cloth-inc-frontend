@@ -5,6 +5,15 @@ export default function Header() {
   const token = localStorage.getItem("cloth-inc-token");
   const userRole = localStorage.getItem("cloth-inc-role");
   const navigate = useNavigate();
+
+  const logout = () => {
+    localStorage.removeItem("cloth-inc-token");
+    localStorage.removeItem("cloth-inc-role");
+    localStorage.removeItem("cloth-inc-user-id");
+    localStorage.removeItem("cloth-inc-shop-id");
+    navigate("/login");
+  }
+
   return (
     <header className="flex items-center justify-between border-b border-b-primary/20 dark:border-b-primary/30 px-10 py-4 bg-background-light dark:bg-background-dark">
       
@@ -36,16 +45,12 @@ export default function Header() {
       <div className="flex items-center gap-4">
         {userRole === "ROLE_SELLER" && (
           <button className="flex items-center justify-center rounded-lg h-10 w-10 text-black dark:text-black hover:bg-gray-100 dark:hover:bg-gray-200 cursor-pointer transition-colors">
-	OnClick={() => navigate("/shop")}
-            <StoreIcon className="h-8 w-8" />
+            <Link to="/shop">
+              <StoreIcon className="h-8 w-8" />
+            </Link>
           </button>
         )}
-        <button className="flex items-center justify-center rounded-lg h-10 w-10 text-black dark:text-black hover:bg-gray-100 dark:hover:bg-gray-200 cursor-pointer transition-colors">
-          <ShoppingCartIcon className="h-8 w-8" />
-        </button>
-        <button className="flex items-center justify-center rounded-lg h-10 w-10 text-black dark:text-black hover:bg-gray-100 dark:hover:bg-gray-200 cursor-pointer transition-colors">
-          <Link to="/login"><LogOutIcon className="h-8 w-8" onClick={() => localStorage.removeItem("cloth-inc-token") && localStorage.removeItem("cloth-inc-role")} /></Link>
-        </button>
+        <Link to="/login"><LogOutIcon className="h-8 w-8" onClick={logout} /></Link>
       </div>
       ) : (
         <div className="flex items-center gap-4">
