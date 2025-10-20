@@ -1,140 +1,101 @@
-import { useEffect, useState } from "react";
-import Header from "../components/Header"; // Asegúrate de tener el componente Header
+import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
+import Header from "../components/Header";
 import FilterSidebar from "../components/SearchScreen/FilterSidebar";
-import ProductGrid from "../components/SearchScreen/ProductGrid";
+import SearchResults from "../components/SearchScreen/SearchResults";
+import { useSearch } from "../hooks/useSearch";
+import { fetchProducts } from "../services/searchService";
 
-const API_URL = "http://localhost:4003/cloth";
-const token = localStorage.getItem("cloth-inc-token");
-
-const requestOptions = {
-  method: "GET",
-  headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
-  },
-  redirect: "follow"
-};
 const Search = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [filters, setFilters] = useState({
-    categories: [],
-    brands: [],
-    sizes: [],
-    minPrice: "",
-    maxPrice: "",
-    stockOnly: false,
-    discountOnly: false,
-    searchQuery: ""
-  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [viewMode, setViewMode] = useState("grid");
+
+  // Obtener query de búsqueda de la URL
+  const searchQuery = searchParams.get("q") || "";
+
+  // Inicializar filtros con la query de búsqueda
+  const initialFilters = {
+    searchQuery: searchQuery
+  };
+
+  // Usar el hook personalizado de búsqueda
+  const {
+    filters,
+    filteredProducts,
+    isSearching,
+    updateFilter,
+    clearFilters,
+    updateMultipleFilters,
+    getActiveFiltersCount,
+    totalProducts,
+    filteredCount
+  } = useSearch(products, initialFilters);
 
   // 🔹 Traer productos del backend
   useEffect(() => {
-    const fetchProducts = async () => {
+    const loadProducts = async () => {
       try {
         setLoading(true);
         setError(null);
-
-        const response = await fetch(API_URL, requestOptions);
-        if (!response.ok) throw new Error("Error al obtener productos");
-        const data = await response.json();
+        const data = await fetchProducts();
         setProducts(data);
-        setFilteredProducts(data);
       } catch (err) {
-        console.error(err);
+        console.error('Error loading products:', err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
+    loadProducts();
   }, []);
 
-  // 🔹 Aplicar filtros locales
+  // Sincronizar query de búsqueda con la URL
   useEffect(() => {
-    let filtered = [...products];
-
-    if (filters.categories.length > 0) {
-      filtered = filtered.filter(p =>
-        filters.categories.includes(p.category?.name)
-      );
+    if (filters.searchQuery !== searchQuery) {
+      updateFilter("searchQuery", searchQuery);
     }
+  }, [searchQuery, filters.searchQuery, updateFilter]);
 
-    if (filters.brands.length > 0) {
-      filtered = filtered.filter(p =>
-        filters.brands.includes(p.shop?.name)
-      );
+  // Manejar cambios en la búsqueda desde el Header
+  const handleSearchChange = useCallback((value) => {
+    updateFilter("searchQuery", value);
+    // Actualizar URL sin recargar la página
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (value.trim()) {
+      newSearchParams.set("q", value.trim());
+    } else {
+      newSearchParams.delete("q");
     }
+    setSearchParams(newSearchParams, { replace: true });
+  }, [updateFilter, searchParams, setSearchParams]);
 
-    if (filters.sizes.length > 0) {
-      filtered = filtered.filter(p =>
-        filters.sizes.includes(p.size)
-      );
-    }
+  // Manejar cambios en el ordenamiento
+  const handleSortChange = useCallback((sortBy, sortOrder) => {
+    updateMultipleFilters({ sortBy, sortOrder });
+  }, [updateMultipleFilters]);
 
-    if (filters.minPrice) {
-      filtered = filtered.filter(p => p.price >= parseFloat(filters.minPrice));
-    }
-    if (filters.maxPrice) {
-      filtered = filtered.filter(p => p.price <= parseFloat(filters.maxPrice));
-    }
+  // Manejar cambios en el modo de vista
+  const handleViewModeChange = useCallback((mode) => {
+    setViewMode(mode);
+  }, []);
 
-    if (filters.stockOnly) {
-      filtered = filtered.filter(p => p.stock > 0);
-    }
-
-    if (filters.discountOnly) {
-      filtered = filtered.filter(p => p.discount > 0);
-    }
-
-    if (filters.searchQuery) {
-      const query = filters.searchQuery.toLowerCase();
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(query) ||
-        p.description?.toLowerCase().includes(query)
-      );
-    }
-
-    setFilteredProducts(filtered);
-  }, [filters, products]);
-
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => {
-      const current = prev[key];
-
-      if (Array.isArray(current)) {
-        const newValue = current.includes(value)
-          ? current.filter(v => v !== value)
-          : [...current, value];
-        return { ...prev, [key]: newValue };
-      } else {
-        return { ...prev, [key]: value };
-      }
-    });
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      categories: [],
-      brands: [],
-      sizes: [],
-      minPrice: "",
-      maxPrice: "",
-      stockOnly: false,
-      discountOnly: false,
-      searchQuery: ""
-    });
-  };
+  // Limpiar búsqueda
+  const handleClearSearch = useCallback(() => {
+    updateFilter("searchQuery", "");
+    setSearchParams({}, { replace: true });
+  }, [updateFilter, setSearchParams]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header con barra de búsqueda */}
       <Header 
         searchQuery={filters.searchQuery}
-        onSearchChange={(value) => handleFilterChange('searchQuery', value)}
+        onSearchChange={handleSearchChange}
+        showSearchSuggestions={true}
       />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -143,22 +104,29 @@ const Search = () => {
           <aside className="lg:w-64 flex-shrink-0">
             <FilterSidebar
               filters={filters}
-              onFilterChange={handleFilterChange}
+              onFilterChange={updateFilter}
               onClearFilters={clearFilters}
+              activeFiltersCount={getActiveFiltersCount()}
+              isLoading={isSearching}
             />
           </aside>
 
-          {/* Grid de productos */}
+          {/* Resultados de búsqueda */}
           <main className="flex-1">
-            <div className="mb-4 text-gray-600">
-              Mostrando {filteredProducts.length} de {products.length} productos
-            </div>
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-                Error: {error}
-              </div>
-            )}
-            <ProductGrid products={filteredProducts} loading={loading} />
+            <SearchResults
+              products={filteredProducts}
+              loading={loading}
+              error={error}
+              totalProducts={totalProducts}
+              filteredCount={filteredCount}
+              searchQuery={filters.searchQuery}
+              sortBy={filters.sortBy}
+              sortOrder={filters.sortOrder}
+              onSortChange={handleSortChange}
+              onViewModeChange={handleViewModeChange}
+              viewMode={viewMode}
+              onClearSearch={handleClearSearch}
+            />
           </main>
         </div>
       </div>
