@@ -46,7 +46,7 @@ export default function Home() {
     <div className="mx-auto max-w-7xl">
       <ToastContainer />
       <Header />
-      <ImageCarousel />
+      <ImageCarousel products={cloths} />
       <Section title="Nuevos Productos" products={clothsNew} />
       <Section title="Ofertas" products={clothsSale} />
     </div>

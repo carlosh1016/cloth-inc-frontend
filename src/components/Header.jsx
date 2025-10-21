@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useCallback } from "react";
 import { ShirtIcon, LogInIcon, LogOutIcon, SearchIcon, ShoppingCartIcon, StoreIcon, XIcon } from "lucide-react";
 
@@ -6,6 +6,7 @@ export default function Header({ searchQuery = "", onSearchChange, showSearchSug
   const token = localStorage.getItem("cloth-inc-token");
   const userRole = localStorage.getItem("cloth-inc-role");
   const navigate = useNavigate();
+  const location = useLocation();
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -27,10 +28,16 @@ export default function Header({ searchQuery = "", onSearchChange, showSearchSug
   const handleSearchSubmit = useCallback((e) => {
     e.preventDefault();
     if (localSearchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(localSearchQuery.trim())}`);
+      // Si ya estamos en /search, solo actualizar filtros
+      if (location.pathname === '/search' && onSearchChange) {
+        onSearchChange(localSearchQuery.trim());
+      } else {
+        // Si estamos en otra página, navegar a /search
+        navigate(`/search?q=${encodeURIComponent(localSearchQuery.trim())}`);
+      }
       setShowSuggestions(false);
     }
-  }, [localSearchQuery, navigate]);
+  }, [localSearchQuery, navigate, location.pathname, onSearchChange]);
 
   const clearSearch = useCallback(() => {
     setLocalSearchQuery("");
