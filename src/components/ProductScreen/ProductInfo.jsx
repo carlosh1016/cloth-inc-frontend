@@ -2,8 +2,10 @@
 import { ShoppingCart, Package, Tag, Store } from 'lucide-react';
 import { useCart } from '../../components/CartContext';
 import { toast } from 'react-toastify';
+import { use } from 'react';
 
 export default function ProductInfo({ product }) {
+  const userId = localStorage.getItem("cloth-inc-user-id");
   const { name, price, size, stock, discount, category, shop } = product;
   const cart = useCart();
   
@@ -117,7 +119,10 @@ export default function ProductInfo({ product }) {
             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
         }`}
         disabled={stock === 0}
-        onClick={handleAddToCart}
+        onClick={userId ? handleAddToCart : () => toast.info("Por favor, inicia sesión para agregar productos al carrito.", {
+          position: "bottom-right",
+          autoClose: 3000
+        })}
       >
         <ShoppingCart size={22} />
         {stock > 0 ? 'Agregar al Carrito' : 'Producto Agotado'}
