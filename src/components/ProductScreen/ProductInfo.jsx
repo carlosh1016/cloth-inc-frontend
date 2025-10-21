@@ -1,12 +1,41 @@
 // src/components/ProductInfo.jsx
 import { ShoppingCart, Package, Tag, Store } from 'lucide-react';
+import { useCart } from '../../components/CartContext';
+import { toast } from 'react-toastify';
 
 export default function ProductInfo({ product }) {
   const { name, price, size, stock, discount, category, shop } = product;
+  const cart = useCart();
   
   // Calcular precio con descuento
   const discountedPrice = discount > 0 ? price * (1 - discount / 100) : price;
   const hasDiscount = discount > 0;
+
+  const handleAddToCart = () => {
+    const cartItem = {
+      productId: product.id,
+      name: product.name,
+      price: discountedPrice,
+      imageUrl: product.imageBase64 
+        ? `data:image/jpeg;base64,${product.imageBase64}` 
+        : null,
+      size: product.size,
+      storeName: product.shop?.name,
+      shopId: product.shop?.id,
+      stock: product.stock,
+      category: product.category,
+      description: product.description,
+      discount: product.discount,
+      originalPrice: product.price,
+      qty: 1
+    };
+    
+    cart.addItem(cartItem);
+    toast.success("✓ Producto agregado al carrito", {
+      position: "bottom-right",
+      autoClose: 2000
+    });
+  };
 
   return (
     <div className="p-4 md:p-8 flex flex-col justify-center space-y-6">
@@ -88,6 +117,7 @@ export default function ProductInfo({ product }) {
             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
         }`}
         disabled={stock === 0}
+        onClick={handleAddToCart}
       >
         <ShoppingCart size={22} />
         {stock > 0 ? 'Agregar al Carrito' : 'Producto Agotado'}

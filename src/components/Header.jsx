@@ -1,6 +1,8 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useCallback } from "react";
 import { ShirtIcon, LogInIcon, LogOutIcon, SearchIcon, ShoppingCartIcon, StoreIcon, XIcon } from "lucide-react";
+import { useCart } from "./CartContext";
+import { toast } from "react-toastify";
 
 export default function Header({ searchQuery = "", onSearchChange, showSearchSuggestions = false }) {
   const token = localStorage.getItem("cloth-inc-token");
@@ -9,6 +11,20 @@ export default function Header({ searchQuery = "", onSearchChange, showSearchSug
   const location = useLocation();
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const cart = useCart();
+  const count = cart?.count ?? 0;
+
+  const handleCartClick = (e) => {
+     if (!token) {
+      e.preventDefault();
+      toast.info("Iniciá sesión para ver tu carrito");
+      const next = encodeURIComponent(window.location.pathname + window.location.search);
+      navigate(`/login?next=${next}`);
+      return;
+    }
+    navigate("/cart");
+  };
 
   const logout = () => {
     localStorage.removeItem("cloth-inc-token");
@@ -117,6 +133,19 @@ export default function Header({ searchQuery = "", onSearchChange, showSearchSug
             </Link>
           </button>
         )}
+                <button
+          type="button"
+          onClick={handleCartClick}
+          className="relative flex items-center justify-center rounded-lg h-10 w-10 text-black hover:bg-gray-100 dark:hover:bg-gray-200 cursor-pointer transition-colors"
+          aria-label="Ir al carrito"
+        >
+          <ShoppingCartIcon className="h-8 w-8" />
+          {token && count > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-rose-600 text-white text-xs flex items-center justify-center">
+              {count}
+            </span>
+          )}
+        </button>     
         <Link to="/login"><LogOutIcon className="h-8 w-8" onClick={logout} /></Link>
       </div>
       ) : (
