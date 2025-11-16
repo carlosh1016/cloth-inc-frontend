@@ -1,70 +1,55 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { toast } from 'react-toastify';
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
+import { loginUser } from "../../redux/loginSlice";
 
 const LoginForm = () => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        console.log(email, password);
-        
-        const requestOptions = {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ email, password }),
-            redirect: "follow"
-        };
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-        fetch("http://localhost:4003/api/v1/auth/authenticate", requestOptions)
-        .then(response => {
-            if (!response.ok) {
-                // Si la respuesta no es exitosa (401, 403, etc.)
-                if (response.status === 401) {
-                    toast.error("Credenciales incorrectas. Por favor, verifica tu email y contraseña.", {
-                        position: "bottom-right"
-                    });
-                } else if (response.status === 403) {
-                    toast.error("Acceso denegado. Por favor, contacta al administrador.", {
-                        position: "bottom-right"
-                    });
-                } else {
-                    toast.error(`Error del servidor: ${response.status}`, {
-                        position: "bottom-right"
-                    });
-                }
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Respuesta del servidor:", data);
-            localStorage.setItem("cloth-inc-token", data.access_token);
-            localStorage.setItem("cloth-inc-role", data.role);
-            localStorage.setItem("cloth-inc-shop-id", data.shop_id);
-            localStorage.setItem("cloth-inc-user-id", data.user_id);
-            toast.success("¡Inicio de sesión exitoso! Redirigiendo...", {
-                position: "bottom-right",
-                autoClose: 1500
-            });
-            setTimeout(() => {
-                navigate("/");
-            }, 1500);
-        })
-        .catch(error => {
-            console.error("Error:", error);
-            // Si es un error de red o no se pudo conectar al servidor
-            if (error.message.includes("fetch")) {
-                toast.error("No se pudo conectar al servidor. Verifica tu conexión.", {
-                    position: "bottom-right"
-                });
-            }
+  const { status, error, isAuthenticated } = useSelector((state) => state.auth);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const resultAction = await dispatch(loginUser({ email, password }));
+
+    if (loginUser.fulfilled.match(resultAction)) {
+      toast.success("¡Inicio de sesión exitoso! Redirigiendo...", {
+        position: "bottom-right",
+        autoClose: 1500,
+      });
+      setTimeout(() => {
+        navigate("/");
+      }, 1500);
+    } else if (loginUser.rejected.match(resultAction)) {
+      const payloadError = resultAction.payload;
+
+      if (payloadError?.status === 401) {
+        toast.error(
+          "Credenciales incorrectas. Por favor, verifica tu email y contraseña.",
+          { position: "bottom-right" }
+        );
+      } else if (payloadError?.status === 403) {
+        toast.error("Acceso denegado. Por favor, contacta al administrador.", {
+          position: "bottom-right",
         });
-    };
+      } else if (payloadError?.status) {
+        toast.error(`Error del servidor: ${payloadError.status}`, {
+          position: "bottom-right",
+        });
+      } else {
+        toast.error(
+          "No se pudo conectar al servidor. Verifica tu conexión.",
+          { position: "bottom-right" }
+        );
+      }
+    }
+  };
     return (
         <>
       <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
@@ -127,10 +112,11 @@ const LoginForm = () => {
             <div>
               <button
                 type="submit"
-                className="flex w-full justify-center rounded-md bg-sky-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-sky-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
+                className="flex w-full justify-center rounded-md bg-sky-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-sky-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 disabled:opacity-60 disabled:cursor-not-allowed"
                 onClick={handleSubmit}
+                disabled={status === "loading"}
               >
-                Iniciar sesión
+                {status === "loading" ? "Iniciando sesión..." : "Iniciar sesión"}
               </button>
             </div>
           </form>

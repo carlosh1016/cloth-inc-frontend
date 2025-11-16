@@ -1,12 +1,15 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useCallback } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { ShirtIcon, LogInIcon, LogOutIcon, SearchIcon, ShoppingCartIcon, StoreIcon, XIcon } from "lucide-react";
 import { useCart } from "./CartContext";
 import { toast } from "react-toastify";
+import { logout as logoutAction } from "../redux/loginSlice";
 
 export default function Header({ searchQuery = "", onSearchChange, showSearchSuggestions = false }) {
-  const token = localStorage.getItem("cloth-inc-token");
-  const userRole = localStorage.getItem("cloth-inc-role");
+  const dispatch = useDispatch();
+  const { token, user } = useSelector((state) => state.auth);
+  const userRole = user?.role;
   const navigate = useNavigate();
   const location = useLocation();
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
@@ -16,7 +19,7 @@ export default function Header({ searchQuery = "", onSearchChange, showSearchSug
   const count = cart?.count ?? 0;
 
   const handleCartClick = (e) => {
-     if (!token) {
+    if (!token) {
       e.preventDefault();
       toast.info("Iniciá sesión para ver tu carrito");
       const next = encodeURIComponent(window.location.pathname + window.location.search);
@@ -54,6 +57,11 @@ export default function Header({ searchQuery = "", onSearchChange, showSearchSug
       setShowSuggestions(false);
     }
   }, [localSearchQuery, navigate, location.pathname, onSearchChange]);
+
+  const handleLogout = () => {
+    dispatch(logoutAction());
+    navigate("/login");
+  };
 
   const clearSearch = useCallback(() => {
     setLocalSearchQuery("");
@@ -145,8 +153,15 @@ export default function Header({ searchQuery = "", onSearchChange, showSearchSug
               {count}
             </span>
           )}
-        </button>     
-        <Link to="/login"><LogOutIcon className="h-8 w-8" onClick={logout} /></Link>
+        </button>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex items-center justify-center rounded-lg h-10 w-10 text-black hover:bg-gray-100 dark:hover:bg-gray-200 cursor-pointer transition-colors"
+          aria-label="Cerrar sesión"
+        >
+          <LogOutIcon className="h-8 w-8" />
+        </button>
       </div>
       ) : (
         <div className="flex items-center gap-4">

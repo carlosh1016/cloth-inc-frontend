@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import Header from "../components/Header";
 import EmptyShop from "../components/ShopScreen/EmptyShop";
 import ShopDashboard from "../components/ShopScreen/ShopDashboard";
@@ -8,9 +9,9 @@ const Shop = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const token = localStorage.getItem("cloth-inc-token");
-  const role = localStorage.getItem("cloth-inc-role");
-  const shopId = localStorage.getItem("cloth-inc-shop-id");
+  const { token, user } = useSelector((state) => state.auth);
+  const role = user?.role;
+  const shopId = user?.shopId;
 
   // Verificar autenticación y rol al montar el componente
   useEffect(() => {

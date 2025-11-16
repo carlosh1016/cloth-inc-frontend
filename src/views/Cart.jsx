@@ -1,5 +1,6 @@
 // src/views/Cart.jsx
 import { useState } from "react";
+import { useSelector } from "react-redux";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useCart } from "../components/CartContext";
 import { toast } from "react-toastify";
@@ -7,7 +8,8 @@ import Header from "../components/Header";
 
 export default function Cart() {
   // 1) Guard de sesión
-  const token = localStorage.getItem("cloth-inc-token");
+  const { token, user } = useSelector((state) => state.auth);
+  const userId = user?.userId;
   if (!token) return <Navigate to="/login" replace />;
 
   const navigate = useNavigate();
@@ -53,8 +55,6 @@ export default function Cart() {
     setIsProcessing(true);
 
     try {
-      const userId = localStorage.getItem("cloth-inc-user-id");
-      
       if (!userId) {
         throw new Error("No se encontró información del usuario");
       }

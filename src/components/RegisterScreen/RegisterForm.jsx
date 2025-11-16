@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { toast } from 'react-toastify';
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
+import { registerUser } from "../../redux/registerSlice";
+import { setAuthState } from "../../redux/loginSlice";
 
 const RegisterForm = () => {
     const [username, setUsername] = useState("");
@@ -12,8 +15,10 @@ const RegisterForm = () => {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [isVendedor, setIsVendedor] = useState(false);
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const { status } = useSelector((state) => state.register);
     
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         
         // Validación de contraseñas
@@ -32,67 +37,53 @@ const RegisterForm = () => {
             return;
         }
         
-        const requestOptions = {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ 
-                username, 
-                password, 
-                name, 
-                surname, 
-                phone, 
-                email, 
-                role: isVendedor ? "ROLE_SELLER" : "ROLE_USER" 
-            }),
-            redirect: "follow"
-        };
+        const role = isVendedor ? "ROLE_SELLER" : "ROLE_USER";
 
-        fetch("http://localhost:4003/api/v1/auth/register", requestOptions)
-        .then(response => {
-            if (!response.ok) {
-                // Manejo de errores según el código de estado
-                if (response.status === 400) {
-                    toast.error("Datos inválidos. Verifica la información ingresada.", {
-                        position: "bottom-right"
-                    });
-                } else if (response.status === 409) {
-                    toast.error("El usuario o email ya existe. Intenta con otro.", {
-                        position: "bottom-right"
-                    });
-                } else {
-                    toast.error(`Error del servidor: ${response.status}`, {
-                        position: "bottom-right"
-                    });
-                }
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Respuesta del servidor:", data);
-            localStorage.setItem("cloth-inc-token", data.access_token);
-            localStorage.setItem("cloth-inc-role", data.role);
-            localStorage.setItem("cloth-inc-shop-id", data.shop_id);
-            localStorage.setItem("cloth-inc-user-id", data.user_id);
+        const resultAction = await dispatch(
+            registerUser({ username, password, name, surname, phone, email, role })
+        );
+
+        if (registerUser.fulfilled.match(resultAction)) {
+            const { token, role, shopId, userId } = resultAction.payload;
+
+            // Auto-login: actualizamos el slice de auth
+            dispatch(
+                setAuthState({
+                    token,
+                    role,
+                    shopId,
+                    userId,
+                })
+            );
+
             toast.success("¡Registro exitoso! Redirigiendo...", {
                 position: "bottom-right",
-                autoClose: 1500
+                autoClose: 1500,
             });
             setTimeout(() => {
                 navigate("/");
             }, 1500);
-        })
-        .catch(error => {
-            console.error("Error:", error);
-            // Error de red o conexión
-            if (error.message.includes("fetch")) {
+        } else if (registerUser.rejected.match(resultAction)) {
+            const payloadError = resultAction.payload;
+
+            if (payloadError?.status === 400) {
+                toast.error("Datos inválidos. Verifica la información ingresada.", {
+                    position: "bottom-right",
+                });
+            } else if (payloadError?.status === 409) {
+                toast.error("El usuario o email ya existe. Intenta con otro.", {
+                    position: "bottom-right",
+                });
+            } else if (payloadError?.status) {
+                toast.error(`Error del servidor: ${payloadError.status}`, {
+                    position: "bottom-right",
+                });
+            } else {
                 toast.error("No se pudo conectar al servidor. Verifica tu conexión.", {
-                    position: "bottom-right"
+                    position: "bottom-right",
                 });
             }
-        });
+        }
     }
     return (
         <>
@@ -184,33 +175,34 @@ const RegisterForm = () => {
                             className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-sky-600 sm:text-sm/6"
                             />
                         </div>
-                        <div class="inline-flex items-center">
-                            <label class="flex items-center cursor-pointer relative" for="isVendedor">
+                        <div className="inline-flex items-center">
+                            <label className="flex items-center cursor-pointer relative" htmlFor="isVendedor">
                                 <input type="checkbox"
                                 checked={isVendedor}
                                 onChange={(e) => setIsVendedor(e.target.checked)}
-                                class="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow hover:shadow-md border border-slate-300 checked:bg-slate-800 checked:border-slate-800"
+                                className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow hover:shadow-md border border-slate-300 checked:bg-slate-800 checked:border-slate-800"
                                 id="isVendedor" />
-                                <span class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"
-                                    stroke="currentColor" stroke-width="1">
-                                    <path fill-rule="evenodd"
+                                <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"
+                                    stroke="currentColor" strokeWidth="1">
+                                    <path fillRule="evenodd"
                                     d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                    clip-rule="evenodd"></path>
+                                    clipRule="evenodd"></path>
                                 </svg>
                                 </span>
                             </label>
-                            <label class="cursor-pointer ml-2 font-medium font-semibold text-gray-900 text-sm" for="isVendedor">
+                            <label className="cursor-pointer ml-2 font-medium font-semibold text-gray-900 text-sm" htmlFor="isVendedor">
                                 ¿Eres vendedor?
                             </label>
                             </div>
                         <div>
                             <button
                             type="submit" 
-                            className="flex w-full justify-center rounded-md bg-sky-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-sky-500"
+                            className="flex w-full justify-center rounded-md bg-sky-600 px-3 py-1.5 text-sm/6 font-semibold text-white shadow-xs hover:bg-sky-500 disabled:opacity-60 disabled:cursor-not-allowed"
                             onClick={handleSubmit}
+                            disabled={status === "loading"}
                             >
-                                Registrarse
+                                {status === "loading" ? "Registrando..." : "Registrarse"}
                             </button>
                         </div>
                     </form>
