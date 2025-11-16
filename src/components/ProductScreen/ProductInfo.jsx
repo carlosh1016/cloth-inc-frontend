@@ -2,7 +2,6 @@
 import { ShoppingCart, Package, Tag, Store } from 'lucide-react';
 import { useCart } from '../../components/CartContext';
 import { toast } from 'react-toastify';
-import { use } from 'react';
 
 export default function ProductInfo({ product }) {
   const userId = localStorage.getItem("cloth-inc-user-id");
@@ -18,8 +17,8 @@ export default function ProductInfo({ product }) {
       productId: product.id,
       name: product.name,
       price: discountedPrice,
-      imageUrl: product.imageBase64 
-        ? `data:image/jpeg;base64,${product.imageBase64}` 
+      imageUrl: product.imageBase64
+        ? `data:image/jpeg;base64,${product.imageBase64}`
         : null,
       size: product.size,
       storeName: product.shop?.name,
@@ -29,14 +28,10 @@ export default function ProductInfo({ product }) {
       description: product.description,
       discount: product.discount,
       originalPrice: product.price,
-      qty: 1
+      qty: 1,
     };
-    
+
     cart.addItem(cartItem);
-    toast.success("✓ Producto agregado al carrito", {
-      position: "bottom-right",
-      autoClose: 2000
-    });
   };
 
   return (

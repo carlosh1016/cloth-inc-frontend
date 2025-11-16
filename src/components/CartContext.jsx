@@ -29,12 +29,13 @@ function mergeItems(prev, next) {
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
 
-  // Se agrega el toast
+  // Se agrega el toast centralizado para cualquier agregado al carrito
   const addItem = (item) => {
     setItems((prev) => mergeItems(prev, [item]));
 
-    toast.success("Producto agregado al carrito", {
+    toast.success("✓ Producto agregado al carrito", {
       position: "bottom-right",
+      autoClose: 2000,
     });
   };
 
