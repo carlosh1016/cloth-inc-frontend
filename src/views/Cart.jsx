@@ -13,7 +13,6 @@ export default function Cart() {
   if (!token) return <Navigate to="/login" replace />;
 
   const navigate = useNavigate();
-  const [payMethod, setPayMethod] = useState("CREDIT_CARD");
   const [isProcessing, setIsProcessing] = useState(false);
 
   // 2) Obtenemos el carrito del contexto
@@ -39,126 +38,12 @@ export default function Cart() {
     setQty(item.productId, item.qty - 1, { variantId: item.variantId, size: item.size });
   };
 
-  const handleCheckout = async () => {
-    if (items.length === 0) return;
-
-    // Validar stock antes de proceder
-    const insufficientStock = items.find(item => item.qty > item.stock);
-    if (insufficientStock) {
-      toast.error(`No hay suficiente stock de "${insufficientStock.name}"`, { 
-        position: "bottom-right",
-        autoClose: 4000
-      });
-      return;
+  const handleGoToCheckout = () => {
+  if (items.length === 0) {
+    toast.info("Tu carrito está vacío");
+    return;
     }
-
-    setIsProcessing(true);
-
-    try {
-      if (!userId) {
-        throw new Error("No se encontró información del usuario");
-      }
-
-      // Agrupar productos por tienda
-      const itemsByShop = items.reduce((acc, item) => {
-        const shopId = item.shopId;
-        if (!shopId) {
-          throw new Error(`Producto "${item.name}" no tiene tienda asignada`);
-        }
-        if (!acc[shopId]) {
-          acc[shopId] = [];
-        }
-        acc[shopId].push(item);
-        return acc;
-      }, {});
-
-      // Crear órdenes por cada tienda
-      const orderPromises = Object.entries(itemsByShop).map(async ([shopId, shopItems]) => {
-        const amount = shopItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-
-        const orderData = {
-          amount: amount,
-          emitedDate: today,
-          state: true,
-          payMethod: payMethod,
-          userId: parseInt(userId),
-          shopId: parseInt(shopId)
-        };
-
-        const response = await fetch("http://localhost:4003/orders", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify(orderData)
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Error al crear orden: ${errorText || response.status}`);
-        }
-
-        return response.json();
-      });
-
-      await Promise.all(orderPromises);
-
-      // Actualizar stock de cada producto
-      const stockUpdatePromises = items.map(async (item) => {
-        const newStock = item.stock - item.qty;
-
-        // Preparar datos del producto para actualización
-        const updatedProduct = {
-          name: item.name,
-          description: item.description,
-          image: item.imageUrl,
-          price: item.originalPrice,
-          size: item.size,
-          category: item.category?.id,
-          stock: newStock,
-          discount: item.discount,
-          shop: item.shopId
-        };
-
-        const response = await fetch(`http://localhost:4003/cloth/${item.productId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify(updatedProduct)
-        });
-
-        if (!response.ok) {
-          console.error(`Error al actualizar stock del producto ${item.name}`);
-        }
-
-        return response;
-      });
-
-      await Promise.all(stockUpdatePromises);
-
-      // Todo exitoso
-      toast.success("¡Compra realizada con éxito! Redirigiendo...", { 
-        position: "bottom-right",
-        autoClose: 1500
-      });
-      clear();
-      setTimeout(() => {
-        navigate("/");
-      }, 1500);
-
-    } catch (error) {
-      console.error("Error en checkout:", error);
-      toast.error(error.message || "Error al procesar la compra", { 
-        position: "bottom-right",
-        autoClose: 4000
-      });
-    } finally {
-      setIsProcessing(false);
-    }
+  navigate("/checkout");
   };
 
   return (
@@ -278,38 +163,11 @@ export default function Cart() {
           </div>
         </div>
 
-        {/* Método de pago */}
-        <div className="mt-6 pt-6 border-t">
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
-            💳 Método de pago
-          </label>
-          <select
-            value={payMethod}
-            onChange={(e) => setPayMethod(e.target.value)}
-            className="w-full rounded-lg border-2 border-gray-300 px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-          >
-            <option value="CREDIT_CARD">💳 Tarjeta de crédito</option>
-            <option value="DEBIT_CARD">💳 Tarjeta de débito</option>
-            <option value="CASH">💵 Efectivo</option>
-            <option value="TRANSFER">🏦 Transferencia bancaria</option>
-          </select>
-        </div>
-
         <button
-          disabled={items.length === 0 || isProcessing}
-          onClick={handleCheckout}
-          className="mt-6 w-full rounded-lg bg-blue-600 px-6 py-4 text-white font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
-        >
-          {isProcessing ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              Procesando compra...
-            </>
-          ) : (
-            <>
-              🛍️ Finalizar compra
-            </>
-          )}
+           disabled={items.length === 0}
+           onClick={handleGoToCheckout}
+           className="mt-6 w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2">
+          🧾 Continuar con la compra
         </button>
 
         {items.length > 0 && (

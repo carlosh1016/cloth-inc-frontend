@@ -10,6 +10,7 @@ import Search from "./views/Search";
 import Shop from "./views/Shop";
 import Cart from "./views/Cart";
 import { CartProvider } from "./components/CartContext";
+import Checkout from "./views/Checkout";
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
           <Route path="/product/:id" element={<Product />} />
           <Route path="/search" element={<Search />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
           <Route path="/shop" element={<Shop />} />
         </Routes>
       </BrowserRouter>
