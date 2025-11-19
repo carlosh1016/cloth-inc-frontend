@@ -11,7 +11,7 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
     price: "",
     size: "",
     category: "",
-    stock: "",
+    
     discount: "",
   });
   const [imagePreview, setImagePreview] = useState(null);
@@ -22,6 +22,11 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
 
   const token = localStorage.getItem("cloth-inc-token");
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
+
+    // Estado para stock por talle
+  const [stockBySizes, setStockBySizes] = useState(
+    sizes.map(() => 0)
+  );
 
   // Cargar categorías
   useEffect(() => {
@@ -63,16 +68,31 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
         price: product.price || "",
         size: product.size || "M",
         category: product.category?.id || "",
-        stock: product.stock || "",
+        
         discount: product.discount || "0",
       });
       setImagePreview(previewData);
+
+      // Cargar el stock por talles
+      if (Array.isArray(product.stock)) {
+        setStockBySizes(product.stock);
+      } else {
+        // Si es un número (datos antiguos), poner todo en 0
+        setStockBySizes(sizes.map(() => 0));
+      }
     }
   }, [product]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
+  };
+
+    // Manejar cambio de stock por talle
+  const handleStockChange = (index, value) => {
+    const newStock = [...stockBySizes];
+    newStock[index] = parseInt(value) || 0;
+    setStockBySizes(newStock);
   };
 
   const handleImageChange = (e) => {
@@ -118,8 +138,10 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
         throw new Error("El precio debe ser mayor a 0");
       }
 
-      if (parseInt(form.stock) < 0) {
-        throw new Error("El stock no puede ser negativo");
+      // Validar que al menos un talle tenga stock
+      const totalStock = stockBySizes.reduce((sum, stock) => sum + stock, 0);
+      if (totalStock === 0) {
+        throw new Error("Debes agregar stock para al menos un talle");
       }
 
       const updatedData = {
@@ -129,7 +151,7 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
         price: parseFloat(form.price),
         size: form.size,
         category: parseInt(form.category),
-        stock: parseInt(form.stock),
+        stock: stockBySizes,
         discount: parseFloat(form.discount),
         shop: product.shop?.id || product.shopId, // Incluir el shopId
       };
@@ -243,7 +265,7 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
               )}
             </div>
 
-            {/* Precio / Stock */}
+            {/* Precio / Categoria */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Precio ($) *</label>
@@ -258,36 +280,7 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
                   className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Stock *</label>
-                <input 
-                  type="number" 
-                  name="stock" 
-                  value={form.stock} 
-                  onChange={handleChange} 
-                  required 
-                  min="0" 
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                />
-              </div>
-            </div>
 
-            {/* Talle / Categoría */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Talle *</label>
-                <select 
-                  name="size" 
-                  value={form.size} 
-                  onChange={handleChange} 
-                  required 
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {sizes.map((size) => (
-                    <option key={size} value={size}>{size}</option>
-                  ))}
-                </select>
-              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Categoría *</label>
                 <select 
@@ -303,6 +296,35 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* Stock por talle */}
+            <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Stock por Talle *
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {sizes.map((size, index) => (
+                  <div key={size} className="flex items-center gap-3 bg-gray-50 p-3 rounded-md border border-gray-200">
+                    <label className="text-sm font-semibold text-gray-700 min-w-[35px]">
+                      {size}
+                    </label>
+                    <input
+                      type="number"
+                      value={stockBySizes[index]}
+                      onChange={(e) => handleStockChange(index, e.target.value)}
+                      min="0"
+                      className="flex-1 border border-gray-300 rounded-md p-2 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0"
+                    />
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Total de unidades: {stockBySizes.reduce((sum, stock) => sum + stock, 0)}
+              </p>
+            </div>
             </div>
 
             {/* Descuento */}

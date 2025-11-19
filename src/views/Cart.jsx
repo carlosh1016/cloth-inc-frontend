@@ -105,9 +105,36 @@ export default function Cart() {
 
       await Promise.all(orderPromises);
 
+      // Actualizar stock por talle de cada producto
+      const sizes = ["XS", "S", "M", "L", "XL", "XXL"]
+
+
       // Actualizar stock de cada producto
       const stockUpdatePromises = items.map(async (item) => {
-        const newStock = item.stock - item.qty;
+        // Obtener el producto completo para tener el array de stock actual
+        const getResponse = await fetch(`http://localhost:4003/cloth/${item.productId}`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (!getResponse.ok) {
+          console.error(`Error al obtener producto ${item.name}`);
+          return;
+        }
+
+        const productData = await getResponse.json();
+        const currentStockArray = Array.isArray(productData.stock) 
+          ? productData.stock 
+          : [0, 0, 0, 0, 0, 0];
+
+        // Actualizar solo el stock del talle específico
+        const sizeIndex = sizes.indexOf(item.size);
+        if (sizeIndex !== -1) {
+          const newStockArray = [...currentStockArray];
+          newStockArray[sizeIndex] = Math.max(0, currentStockArray[sizeIndex] - item.qty);
+        
+
 
         // Preparar datos del producto para actualización
         const updatedProduct = {
@@ -117,7 +144,7 @@ export default function Cart() {
           price: item.originalPrice,
           size: item.size,
           category: item.category?.id,
-          stock: newStock,
+          stock: newStockArray,
           discount: item.discount,
           shop: item.shopId
         };
@@ -136,6 +163,7 @@ export default function Cart() {
         }
 
         return response;
+        }
       });
 
       await Promise.all(stockUpdatePromises);
