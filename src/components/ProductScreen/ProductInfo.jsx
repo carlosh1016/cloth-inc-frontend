@@ -1,4 +1,5 @@
 // src/components/ProductInfo.jsx
+import { useState } from 'react';
 import { ShoppingCart, Package, Tag, Store } from 'lucide-react';
 import { useCart } from '../../components/CartContext';
 import { toast } from 'react-toastify';
@@ -198,19 +199,6 @@ export default function ProductInfo({ product }) {
         </div>
       )}
 
-      {/* Guía de talles */}
-      {availableSizes.length > 0 && (
-        <div className="mb-6 p-3 bg-gray-50 rounded-lg">
-          <p className="text-xs text-gray-600 mb-2 font-medium">Talles disponibles:</p>
-          <div className="flex flex-wrap gap-2">
-            {availableSizes.map((size) => (
-              <span key={size} className="text-xs px-2 py-1 bg-white border border-gray-200 rounded">
-                {size}: {getStockForSize(size)} unid.
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Información de la tienda */}
       {shop && (
