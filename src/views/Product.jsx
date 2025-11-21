@@ -7,6 +7,7 @@ import ImageGallery from '../components/ProductScreen/ImageGallery';
 import ProductInfo from '../components/ProductScreen/ProductInfo';
 import ProductDescription from '../components/ProductScreen/ProductDescription';
 import { useParams } from 'react-router-dom';
+import { imagesToUrls } from '../utils/imageUtils';
 // import productData from '../data/product.json';
 
 
@@ -47,9 +48,16 @@ export default function Product() {
 
   if (loading) {
     return (
-      <div className="font-sans min-h-screen flex items-center justify-center">
+      <div className="font-sans min-h-screen bg-gray-50">
         <Header />
-        <p className="text-xl">Cargando producto... ⏳</p>
+        <div className="max-w-7xl mx-auto my-8 px-4">
+          <div className="bg-white shadow-xl rounded-lg overflow-hidden p-12">
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+              <p className="text-lg text-gray-600">Cargando producto...</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -80,9 +88,16 @@ export default function Product() {
 
 
   // Adaptar la estructura del backend a lo que esperan los componentes
-  const images = product.imageBase64 
-    ? [`data:image/jpeg;base64,${product.imageBase64}`]
-    : [];
+  // El backend ahora devuelve images: [{id, imageBase64}]
+  let images = [];
+  if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+    images = imagesToUrls(product.images);
+  } else if (product.imageBase64) {
+    // Compatibilidad con formato antiguo
+    images = [product.imageBase64.startsWith('data:image/') 
+      ? product.imageBase64 
+      : `data:image/jpeg;base64,${product.imageBase64}`];
+  }
   
   return (
     <div className="font-sans min-h-screen bg-gray-50">

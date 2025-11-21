@@ -1,6 +1,7 @@
 // ImageCarousel.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getFirstImageUrl } from "../../utils/imageUtils";
 
 export default function ImageCarousel({ products = [] }) {
   const navigate = useNavigate();
@@ -29,14 +30,16 @@ export default function ImageCarousel({ products = [] }) {
         className="flex transition-transform duration-500"
         style={{ transform: `translateX(-${current * 100}%)` }}
       >
-        {carouselProducts.map((product) => (
+        {carouselProducts.map((product) => {
+          const firstImageUrl = getFirstImageUrl(product);
+          return (
           <div 
             key={product.id} 
             className="flex-shrink-0 w-full h-64 md:h-96 relative group cursor-pointer"
             onClick={() => navigate(`/product/${product.id}`)}
           >
             <img
-              src={product.imageBase64 ? `data:image/jpeg;base64,${product.imageBase64}` : "/fotoProductosEjemplo/Sintitulo.png"}
+              src={firstImageUrl || "/fotoProductosEjemplo/Sintitulo.png"}
               alt={product.name || `Producto ${product.id}`}
               className="w-full h-full object-cover rounded-xl transform group-hover:scale-105 transition-transform duration-300"
             />
@@ -70,7 +73,8 @@ export default function ImageCarousel({ products = [] }) {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Botones de navegación */}

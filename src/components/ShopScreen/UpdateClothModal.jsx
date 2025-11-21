@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
+import { filesToBase64, validateImageFile, imagesToUrls } from "../../utils/imageUtils";
 
 const API_URL = "http://localhost:4003";
 
@@ -8,14 +9,13 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
   const [form, setForm] = useState({
     name: "",
     description: "",
-    image: "",
     price: "",
     size: "",
     category: "",
-    
     discount: "",
   });
-  const [imagePreview, setImagePreview] = useState(null);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [imageBase64Array, setImageBase64Array] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(true);
@@ -52,27 +52,39 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
   // Prellenar el formulario con los datos del producto
   useEffect(() => {
     if (product) {
-      // Manejar la imagen usando imageBase64 del backend
-      let imageData = "";
-      let previewData = null;
-      
-      if (product.imageBase64) {
-        // El backend ahora devuelve imageBase64 (sin el prefijo data:)
-        imageData = `data:image/jpeg;base64,${product.imageBase64}`;
-        previewData = imageData;
-      }
-      
       setForm({
         name: product.name || "",
         description: product.description || "",
-        image: imageData, // Guardar con el prefijo completo
         price: product.price || "",
         size: product.size || "M",
         category: product.category?.id || "",
-        
         discount: product.discount || "0",
       });
-      setImagePreview(previewData);
+
+      // Cargar imágenes existentes del producto
+      if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+        // Convertir imágenes del backend a URLs para preview
+        const imageUrls = imagesToUrls(product.images);
+        setImagePreviews(imageUrls);
+        // Guardar también los Base64 para enviar al backend
+        setImageBase64Array(product.images.map(img => {
+          // Si ya tiene prefijo, mantenerlo; si no, agregarlo
+          if (img.imageBase64.startsWith('data:image/')) {
+            return img.imageBase64;
+          }
+          return `data:image/jpeg;base64,${img.imageBase64}`;
+        }));
+      } else if (product.imageBase64) {
+        // Compatibilidad con formato antiguo (una sola imagen)
+        const imageUrl = product.imageBase64.startsWith('data:image/') 
+          ? product.imageBase64 
+          : `data:image/jpeg;base64,${product.imageBase64}`;
+        setImagePreviews([imageUrl]);
+        setImageBase64Array([imageUrl]);
+      } else {
+        setImagePreviews([]);
+        setImageBase64Array([]);
+      }
 
       // Cargar el stock por talles
       if (Array.isArray(product.stock)) {
@@ -96,32 +108,41 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
     setStockBySizes(newStock);
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        toast.error("Por favor selecciona un archivo de imagen válido", { position: "bottom-right" });
+  // Manejar la selección de múltiples imágenes
+  const handleImageChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    
+    if (files.length === 0) return;
+
+    // Validar cada archivo
+    for (const file of files) {
+      const validation = validateImageFile(file, 5);
+      if (!validation.valid) {
+        toast.error(validation.error, { position: "bottom-right" });
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("La imagen no debe superar los 5MB", { position: "bottom-right" });
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result;
-        setForm({ ...form, image: base64String });
-        setImagePreview(base64String);
-      };
-      reader.readAsDataURL(file);
     }
+
+    try {
+      // Convertir todos los archivos a Base64
+      const base64Images = await filesToBase64(files);
+      
+      // Agregar a los arrays existentes
+      setImagePreviews(prev => [...prev, ...base64Images]);
+      setImageBase64Array(prev => [...prev, ...base64Images]);
+    } catch (error) {
+      console.error("Error al cargar imágenes:", error);
+      toast.error("Error al cargar las imágenes", { position: "bottom-right" });
+    }
+    
+    // Limpiar el input para permitir seleccionar el mismo archivo nuevamente
+    e.target.value = '';
   };
 
-  const handleRemoveImage = () => {
-    setForm({ ...form, image: "" });
-    setImagePreview(null);
-    const fileInput = document.getElementById('image-upload-edit');
-    if (fileInput) fileInput.value = '';
+  // Eliminar una imagen específica del preview
+  const handleRemoveImage = (index) => {
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    setImageBase64Array(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -158,17 +179,56 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
         throw new Error("Debes agregar stock para al menos un talle");
       }
 
+      // Preparar las imágenes: remover el prefijo data:image/...;base64, si existe
+      const imagesForBackend = imageBase64Array
+        .filter(base64 => base64 && typeof base64 === 'string' && base64.length > 0)
+        .map(base64 => {
+          // Si tiene prefijo, extraer solo el Base64
+          if (base64.includes(',')) {
+            return base64.split(',')[1];
+          }
+          return base64;
+        });
+
+      // Asegurar que stockBySizes sea un array válido de números
+      const validStock = stockBySizes.map(s => {
+        const num = parseInt(s);
+        return isNaN(num) ? 0 : num;
+      });
+
       const updatedData = {
-        name: form.name,
-        description: form.description,
-        image: form.image || null, // Enviar base64 o null
-        price: parseFloat(form.price),
-        size: form.size,
-        category: parseInt(form.category),
-        stock: stockBySizes,
-        discount: parseFloat(form.discount),
+        name: form.name || "",
+        description: form.description || "",
+        images: imagesForBackend.length > 0 ? imagesForBackend : [], // Array de Base64 strings
+        price: parseFloat(form.price) || 0,
+        size: form.size || "M",
+        category: parseInt(form.category) || 0,
+        stock: validStock,
+        discount: parseFloat(form.discount) || 0,
         // No enviar el campo shop - el backend lo infiere del producto existente
       };
+
+      // Validar que los datos críticos sean válidos
+      if (!updatedData.name || updatedData.name.trim() === "") {
+        throw new Error("El nombre del producto es requerido");
+      }
+      if (updatedData.price <= 0) {
+        throw new Error("El precio debe ser mayor a 0");
+      }
+      if (!updatedData.category || updatedData.category === 0) {
+        throw new Error("Debes seleccionar una categoría válida");
+      }
+
+      // Validar que el JSON sea válido antes de enviarlo
+      let jsonBody;
+      try {
+        jsonBody = JSON.stringify(updatedData);
+        // Verificar que el JSON sea válido
+        JSON.parse(jsonBody);
+      } catch (jsonError) {
+        console.error("Error al serializar datos:", updatedData);
+        throw new Error(`Error al preparar los datos: ${jsonError.message}`);
+      }
 
       const res = await fetch(`${API_URL}/cloth/${product.id}`, {
         method: "PUT",
@@ -176,15 +236,37 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(updatedData),
+        body: jsonBody,
       });
 
       if (!res.ok) {
-        const errorText = await res.text();
+        let errorText;
+        try {
+          errorText = await res.text();
+          // Intentar parsear como JSON si es posible
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorText = errorJson.message || errorJson.error || errorText;
+          } catch {
+            // Si no es JSON válido, usar el texto tal cual
+          }
+        } catch (e) {
+          errorText = `Error ${res.status}: ${res.statusText}`;
+        }
         throw new Error(errorText || "Error al actualizar el producto");
       }
 
-      const updatedProduct = await res.json();
+      let updatedProduct;
+      try {
+        const responseText = await res.text();
+        if (!responseText || responseText.trim() === '') {
+          throw new Error("El servidor no devolvió datos");
+        }
+        updatedProduct = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("Error al parsear respuesta del servidor:", parseError);
+        throw new Error("Error al procesar la respuesta del servidor. Por favor, intenta nuevamente.");
+      }
       toast.success("¡Producto actualizado exitosamente!", { position: "bottom-right" });
       onProductUpdated(updatedProduct);
       onClose();
@@ -239,44 +321,67 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
               />
             </div>
 
-            {/* Imagen */}
+            {/* Múltiples Imágenes */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Imagen del producto</label>
-              {imagePreview ? (
-                <div className="relative">
-                  <img src={imagePreview} alt="Preview" className="w-full h-48 object-cover rounded-md border border-gray-300" />
-                  <button 
-                    type="button" 
-                    onClick={handleRemoveImage} 
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors"
-                    title="Eliminar imagen"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </div>
-              ) : (
-                <div className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center hover:border-gray-400 transition-colors">
-                  <input
-                    type="file"
-                    id="image-upload-edit"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                  <label 
-                    htmlFor="image-upload-edit" 
-                    className="cursor-pointer flex flex-col items-center"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <span className="text-sm text-gray-600">Haz clic para cambiar la imagen</span>
-                    <span className="text-xs text-gray-500 mt-1">PNG, JPG, GIF (máx. 5MB)</span>
-                  </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Imágenes del producto</label>
+              
+              {/* Grid de previews de imágenes */}
+              {imagePreviews.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className="relative group">
+                      <img 
+                        src={preview} 
+                        alt={`Preview ${index + 1}`} 
+                        className="w-full h-32 object-cover rounded-md border border-gray-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                        title="Eliminar imagen"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
+
+              {/* Input para agregar más imágenes */}
+              <div className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center hover:border-gray-400 transition-colors">
+                <input
+                  type="file"
+                  id="image-upload-edit"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+                <label 
+                  htmlFor="image-upload-edit" 
+                  className="cursor-pointer flex flex-col items-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-sm text-gray-600">
+                    {imagePreviews.length > 0 
+                      ? "Haz clic para agregar más imágenes" 
+                      : "Haz clic para subir imágenes"}
+                  </span>
+                  <span className="text-xs text-gray-500 mt-1">
+                    PNG, JPG, GIF, WebP (máx. 5MB cada una)
+                  </span>
+                  {imagePreviews.length > 0 && (
+                    <span className="text-xs text-blue-600 mt-1 font-medium">
+                      {imagePreviews.length} {imagePreviews.length === 1 ? 'imagen seleccionada' : 'imágenes seleccionadas'}
+                    </span>
+                  )}
+                </label>
+              </div>
             </div>
 
             {/* Precio / Categoria */}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSelector } from "react-redux";
 
 const CreateShopModal = ({ onClose, onShopCreated }) => {
   const [form, setForm] = useState({
@@ -9,8 +10,8 @@ const CreateShopModal = ({ onClose, onShopCreated }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const token = localStorage.getItem("cloth-inc-token");
-  const userId = localStorage.getItem("cloth-inc-user-id");
+  const { token, user } = useSelector((state) => state.auth);
+  const userId = user?.userId;
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -22,8 +23,13 @@ const CreateShopModal = ({ onClose, onShopCreated }) => {
     setError(null);
 
     try {
+      // Validar que tengamos el token y userId
+      if (!token) {
+        throw new Error("No estás autenticado. Por favor, inicia sesión nuevamente");
+      }
+
       if (!userId) {
-        throw new Error("No se pudo obtener el ID del usuario");
+        throw new Error("No se pudo obtener el ID del usuario. Por favor, inicia sesión nuevamente");
       }
 
       // Crear la tienda

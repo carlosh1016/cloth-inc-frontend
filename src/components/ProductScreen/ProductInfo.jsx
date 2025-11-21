@@ -4,6 +4,7 @@ import { ShoppingCart, Package, Tag, Store } from 'lucide-react';
 import { useCart } from '../../components/CartContext';
 import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
+import { getFirstImageUrl } from '../../utils/imageUtils';
 
 export default function ProductInfo({ product }) {
   const userId = useSelector((state) => state.auth.user.userId);
@@ -58,13 +59,14 @@ export default function ProductInfo({ product }) {
       });
       return;
     }
+    // Obtener la primera imagen del producto para el carrito
+    const firstImageUrl = getFirstImageUrl(product);
+
     const cartItem = {
       productId: product.id,
       name: product.name,
       price: discountedPrice,
-      imageUrl: product.imageBase64
-        ? `data:image/jpeg;base64,${product.imageBase64}`
-        : null,
+      imageUrl: firstImageUrl,
       size: selectedSize,
       stockAvailable: sizeStock,
       storeName: product.shop?.name,

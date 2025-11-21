@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { getFirstImageUrl } from "../utils/imageUtils";
 
 const ProductCard = ({ product, viewMode = "grid" }) => {
   const navigate = useNavigate();
@@ -17,6 +18,9 @@ const ProductCard = ({ product, viewMode = "grid" }) => {
     navigate(`/product/${product.id}`);
   };
 
+  // Obtener la primera imagen del producto
+  const firstImageUrl = getFirstImageUrl(product);
+
   // Vista de lista
   if (viewMode === "list") {
     return (
@@ -26,9 +30,9 @@ const ProductCard = ({ product, viewMode = "grid" }) => {
       >
         {/* Imagen */}
         <div className="relative w-24 h-24 flex-shrink-0 overflow-hidden bg-gray-100 rounded">
-          {product.imageBase64 ? (
+          {firstImageUrl ? (
             <img
-              src={`data:image/jpeg;base64,${product.imageBase64}`}
+              src={firstImageUrl}
               alt={product.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
@@ -109,9 +113,9 @@ const ProductCard = ({ product, viewMode = "grid" }) => {
     >
       {/* Imagen */}
       <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
-        {product.imageBase64 ? (
+        {firstImageUrl ? (
           <img
-            src={`data:image/jpeg;base64,${product.imageBase64}`}
+            src={firstImageUrl}
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
