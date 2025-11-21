@@ -37,6 +37,7 @@ const SearchResults = ({
     { value: "price", label: "Precio", order: "asc" },
     { value: "price", label: "Precio", order: "desc" },
     { value: "discount", label: "Descuento", order: "desc" },
+
   ];
 
   const handleSortChange = useCallback((option) => {

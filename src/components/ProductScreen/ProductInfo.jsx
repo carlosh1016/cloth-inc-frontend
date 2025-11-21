@@ -1,4 +1,5 @@
 // src/components/ProductInfo.jsx
+import { useState } from 'react';
 import { ShoppingCart, Package, Tag, Store } from 'lucide-react';
 import { useCart } from '../../components/CartContext';
 import { toast } from 'react-toastify';
@@ -8,12 +9,55 @@ export default function ProductInfo({ product }) {
   const userId = useSelector((state) => state.auth.user.userId);
   const { name, price, size, stock, discount, category, shop } = product;
   const cart = useCart();
+
+  const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
+
+  // Estado para el talle seleccionado
+  const [selectedSize, setSelectedSize] = useState("");
   
   // Calcular precio con descuento
   const discountedPrice = discount > 0 ? price * (1 - discount / 100) : price;
   const hasDiscount = discount > 0;
 
+  // Obtener stock por talles
+  const stockArray = Array.isArray(stock) ? stock : [0, 0, 0, 0, 0, 0];
+  const totalStock = stockArray.reduce((sum, s) => sum + (s || 0), 0);
+
+  // Obtener talles disponibles (con stock > 0)
+  const availableSizes = sizes.filter((_, index) => stockArray[index] > 0);
+
+  // Obtener stock del talle seleccionado
+  const getStockForSize = (size) => {
+    const index = sizes.indexOf(size);
+    return stockArray[index] || 0;
+  };
+
+
+
   const handleAddToCart = () => {
+    if (!userId) {
+      toast.error("Debes iniciar sesión para agregar productos al carrito", {
+        position: "bottom-right",
+      });
+      return;
+    }
+
+        // Validar que se haya seleccionado un talle
+    if (!selectedSize) {
+      toast.error("Por favor selecciona un talle", {
+        position: "bottom-right",
+      });
+      return;
+    }
+
+        // Validar que el talle seleccionado tenga stock
+    const sizeStock = getStockForSize(selectedSize);
+    if (sizeStock === 0) {
+      toast.error("El talle seleccionado no tiene stock disponible", {
+        position: "bottom-right",
+      });
+      return;
+    }
     const cartItem = {
       productId: product.id,
       name: product.name,
@@ -21,10 +65,10 @@ export default function ProductInfo({ product }) {
       imageUrl: product.imageBase64
         ? `data:image/jpeg;base64,${product.imageBase64}`
         : null,
-      size: product.size,
+      size: selectedSize,
+      stockAvailable: sizeStock,
       storeName: product.shop?.name,
       shopId: product.shop?.id,
-      stock: product.stock,
       category: product.category,
       description: product.description,
       discount: product.discount,
@@ -33,6 +77,9 @@ export default function ProductInfo({ product }) {
     };
 
     cart.addItem(cartItem);
+    toast.success(`${name} (Talle ${selectedSize}) agregado al carrito`, {
+      position: "bottom-right",
+    });
   };
 
   return (
@@ -74,24 +121,85 @@ export default function ProductInfo({ product }) {
         )}
       </div>
 
-      {/* Información de stock y talle */}
-      <div className="grid grid-cols-2 gap-4 py-4 border-y border-gray-200">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">Talle</h3>
-          <div className="px-4 py-2 bg-gray-100 rounded-md text-center font-bold text-gray-900">
-            {size || 'N/A'}
-          </div>
-        </div>
-        <div>
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">Disponibilidad</h3>
-          <div className={`px-4 py-2 rounded-md text-center font-medium flex items-center justify-center gap-2 ${
-            stock > 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-          }`}>
-            <Package size={18} />
-            {stock > 0 ? `${stock} en stock` : 'Agotado'}
-          </div>
+      {/* Stock total */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2">
+          {totalStock > 0 ? (
+            <>
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <span className="text-sm font-medium text-gray-900">
+                En stock ({totalStock} unidades disponibles)
+              </span>
+            </>
+          ) : (
+            <>
+              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+              <span className="text-sm font-medium text-red-600">
+                Sin stock
+              </span>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Selector de Talle */}
+      {totalStock > 0 && (
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Selecciona tu talle:
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {sizes.map((size, index) => {
+              const sizeStock = stockArray[index] || 0;
+              const isAvailable = sizeStock > 0;
+              const isSelected = selectedSize === size;
+
+              return (
+                <button
+                  key={size}
+                  type="button"
+                  disabled={!isAvailable}
+                  onClick={() => setSelectedSize(size)}
+                  className={`
+                    relative py-3 px-4 border-2 rounded-lg font-medium text-sm transition-all
+                    ${isSelected 
+                      ? 'border-blue-600 bg-blue-50 text-blue-700' 
+                      : isAvailable
+                        ? 'border-gray-300 hover:border-blue-400 text-gray-900'
+                        : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                    }
+                  `}
+                >
+                  <div className="flex flex-col items-center">
+                    <span className="font-semibold">{size}</span>
+                    {isAvailable && (
+                      <span className="text-xs mt-1 text-gray-600">
+                        {sizeStock} disp.
+                      </span>
+                    )}
+                    {!isAvailable && (
+                      <span className="text-xs mt-1">Sin stock</span>
+                    )}
+                  </div>
+                  {isSelected && (
+                    <div className="absolute top-1 right-1">
+                      <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {selectedSize && (
+            <p className="text-xs text-gray-600 mt-2">
+              Talle seleccionado: <strong>{selectedSize}</strong> ({getStockForSize(selectedSize)} disponibles)
+            </p>
+          )}
+        </div>
+      )}
+
 
       {/* Información de la tienda */}
       {shop && (
@@ -110,23 +218,25 @@ export default function ProductInfo({ product }) {
       {/* Botón de agregar al carrito */}
       <button 
         className={`w-full py-4 rounded-lg flex items-center justify-center gap-2 text-lg font-bold transition-all duration-300 ${
-          stock > 0 
+          totalStock > 0 && selectedSize
             ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg' 
             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
         }`}
-        disabled={stock === 0}
-        onClick={userId ? handleAddToCart : () => toast.info("Por favor, inicia sesión para agregar productos al carrito.", {
-          position: "bottom-right",
-          autoClose: 3000
-        })}
+        disabled={totalStock === 0 || !selectedSize}
+        onClick={handleAddToCart}
       >
         <ShoppingCart size={22} />
-        {stock > 0 ? 'Agregar al Carrito' : 'Producto Agotado'}
+        {totalStock === 0 
+          ? 'Sin stock' 
+          : !selectedSize
+            ? 'Selecciona un talle'
+            : 'Agregar al carrito'
+        }
       </button>
 
-      {stock > 0 && stock < 5 && (
+      {totalStock > 0 && totalStock < 5 && (
         <p className="text-orange-600 text-sm font-medium text-center">
-          ⚠️ ¡Solo quedan {stock} unidades disponibles!
+          ⚠️ ¡Solo quedan {totalStock} unidades disponibles!
         </p>
       )}
     </div>

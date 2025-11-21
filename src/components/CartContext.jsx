@@ -1,7 +1,6 @@
 // CartContext.jsx
 // Maneja los items en memoria
 import { createContext, useContext, useMemo, useState } from "react";
-import { toast } from "react-toastify";
 
 const CartContext = createContext(null);
 export const useCart = () => useContext(CartContext);
@@ -29,14 +28,8 @@ function mergeItems(prev, next) {
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
 
-  // Se agrega el toast centralizado para cualquier agregado al carrito
   const addItem = (item) => {
     setItems((prev) => mergeItems(prev, [item]));
-
-    toast.success("✓ Producto agregado al carrito", {
-      position: "bottom-right",
-      autoClose: 2000,
-    });
   };
 
   const removeItem = (productId, { variantId = undefined, size = undefined } = {}) =>

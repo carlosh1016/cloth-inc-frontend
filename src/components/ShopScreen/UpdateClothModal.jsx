@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 
 const API_URL = "http://localhost:4003";
@@ -11,7 +12,7 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
     price: "",
     size: "",
     category: "",
-    stock: "",
+    
     discount: "",
   });
   const [imagePreview, setImagePreview] = useState(null);
@@ -20,8 +21,13 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [error, setError] = useState(null);
 
-  const token = localStorage.getItem("cloth-inc-token");
+  const { token, user } = useSelector((state) => state.auth);
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
+
+    // Estado para stock por talle
+  const [stockBySizes, setStockBySizes] = useState(
+    sizes.map(() => 0)
+  );
 
   // Cargar categorías
   useEffect(() => {
@@ -63,16 +69,31 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
         price: product.price || "",
         size: product.size || "M",
         category: product.category?.id || "",
-        stock: product.stock || "",
+        
         discount: product.discount || "0",
       });
       setImagePreview(previewData);
+
+      // Cargar el stock por talles
+      if (Array.isArray(product.stock)) {
+        setStockBySizes(product.stock);
+      } else {
+        // Si es un número (datos antiguos), poner todo en 0
+        setStockBySizes(sizes.map(() => 0));
+      }
     }
   }, [product]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
+  };
+
+    // Manejar cambio de stock por talle
+  const handleStockChange = (index, value) => {
+    const newStock = [...stockBySizes];
+    newStock[index] = parseInt(value) || 0;
+    setStockBySizes(newStock);
   };
 
   const handleImageChange = (e) => {
@@ -109,6 +130,19 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
     setError(null);
 
     try {
+      // Validar token
+      if (!token) {
+        throw new Error("No estás autenticado. Por favor, inicia sesión nuevamente");
+      }
+
+      // Validar que el usuario sea dueño de la tienda del producto
+      const productShopId = product.shop?.id || product.shopId;
+      const userShopId = user?.shopId;
+      
+      if (userShopId && productShopId && userShopId !== productShopId) {
+        throw new Error("No tienes permisos para actualizar este producto. Solo puedes actualizar productos de tu propia tienda.");
+      }
+
       // Validaciones
       if (!form.category) {
         throw new Error("Debes seleccionar una categoría");
@@ -118,8 +152,10 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
         throw new Error("El precio debe ser mayor a 0");
       }
 
-      if (parseInt(form.stock) < 0) {
-        throw new Error("El stock no puede ser negativo");
+      // Validar que al menos un talle tenga stock
+      const totalStock = stockBySizes.reduce((sum, stock) => sum + stock, 0);
+      if (totalStock === 0) {
+        throw new Error("Debes agregar stock para al menos un talle");
       }
 
       const updatedData = {
@@ -129,9 +165,9 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
         price: parseFloat(form.price),
         size: form.size,
         category: parseInt(form.category),
-        stock: parseInt(form.stock),
+        stock: stockBySizes,
         discount: parseFloat(form.discount),
-        shop: product.shop?.id || product.shopId, // Incluir el shopId
+        // No enviar el campo shop - el backend lo infiere del producto existente
       };
 
       const res = await fetch(`${API_URL}/cloth/${product.id}`, {
@@ -162,7 +198,7 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4 sticky top-0 bg-white pb-2 border-b">
           <h2 className="text-xl font-semibold text-gray-900">Editar producto</h2>
@@ -243,7 +279,7 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
               )}
             </div>
 
-            {/* Precio / Stock */}
+            {/* Precio / Categoria */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Precio ($) *</label>
@@ -258,36 +294,7 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
                   className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Stock *</label>
-                <input 
-                  type="number" 
-                  name="stock" 
-                  value={form.stock} 
-                  onChange={handleChange} 
-                  required 
-                  min="0" 
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                />
-              </div>
-            </div>
 
-            {/* Talle / Categoría */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Talle *</label>
-                <select 
-                  name="size" 
-                  value={form.size} 
-                  onChange={handleChange} 
-                  required 
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {sizes.map((size) => (
-                    <option key={size} value={size}>{size}</option>
-                  ))}
-                </select>
-              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Categoría *</label>
                 <select 
@@ -303,6 +310,33 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* Stock por talle */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-4">
+                Stock por Talle *
+              </label>
+              <div className="grid grid-cols-2 gap-5">
+                {sizes.map((size, index) => (
+                  <div key={size} className="flex items-center gap-3 bg-gray-50 p-5 rounded-md border border-gray-200">
+                    <label className="text-sm font-semibold text-gray-700 min-w-[40px]">
+                      {size}
+                    </label>
+                    <input
+                      type="number"
+                      value={stockBySizes[index]}
+                      onChange={(e) => handleStockChange(index, e.target.value)}
+                      min="0"
+                      className="flex-1 border border-gray-300 rounded-md p-2.5 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0"
+                    />
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-3">
+                Total de unidades: {stockBySizes.reduce((sum, stock) => sum + stock, 0)}
+              </p>
             </div>
 
             {/* Descuento */}

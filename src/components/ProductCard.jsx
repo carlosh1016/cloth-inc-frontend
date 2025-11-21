@@ -2,6 +2,16 @@ import { useNavigate } from "react-router-dom";
 
 const ProductCard = ({ product, viewMode = "grid" }) => {
   const navigate = useNavigate();
+  const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
+
+  // Obtener stock por talles
+  const stockArray = Array.isArray(product.stock) 
+    ? product.stock 
+    : [0, 0, 0, 0, 0, 0];
+  const totalStock = stockArray.reduce((sum, s) => sum + (s || 0), 0);
+
+   // Obtener talles disponibles (con stock > 0)
+  const availableSizes = sizes.filter((_, index) => stockArray[index] > 0);
 
   const handleClick = () => {
     navigate(`/product/${product.id}`);
@@ -65,16 +75,26 @@ const ProductCard = ({ product, viewMode = "grid" }) => {
 
           {/* Stock y Talle */}
           <div className="flex items-center justify-between text-sm">
-            <p className={`${product.stock > 0 ? "text-green-600" : "text-red-600"}`}>
-              {product.stock > 0 ? `Stock: ${product.stock}` : "Agotado"}
+            <p className={`${totalStock > 0 ? "text-green-600" : "text-red-600"}`}>
+              {totalStock > 0 ? `Stock: ${totalStock}` : "Agotado"}
             </p>
             
-            {/* Talle */}
-            {product.size && (
-              <span className="text-gray-600">
-                <span className="font-medium">{product.size}</span>
-              </span>
-            )}
+        {/* Talles disponibles */}
+        {availableSizes.length > 0 && (
+          <div className="mb-3">
+            <p className="text-xs text-gray-500 mb-1">Talles disponibles:</p>
+            <div className="flex flex-wrap gap-1">
+              {availableSizes.map((size) => (
+                <span
+                  key={size}
+                  className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded border border-gray-200"
+                >
+                  {size}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
           </div>
         </div>
       </div>
@@ -138,16 +158,26 @@ const ProductCard = ({ product, viewMode = "grid" }) => {
 
         {/* Stock y Talle */}
         <div className="flex items-center justify-between text-sm">
-          <p className={`${product.stock > 0 ? "text-green-600" : "text-red-600"}`}>
-            {product.stock > 0 ? `Stock: ${product.stock}` : "Agotado"}
+          <p className={`${totalStock > 0 ? "text-green-600" : "text-red-600"}`}>
+            {totalStock > 0 ? `Stock: ${totalStock}` : "Agotado"}
           </p>
           
-          {/* Talle */}
-          {product.size && (
-            <span className="text-gray-600">
-              <span className="font-medium">{product.size}</span>
-            </span>
-          )}
+        {/* Talles disponibles */}
+        {availableSizes.length > 0 && (
+          <div className="mb-3">
+            <p className="text-xs text-gray-500 mb-1">Talles disponibles:</p>
+            <div className="flex flex-wrap gap-1">
+              {availableSizes.map((size) => (
+                <span
+                  key={size}
+                  className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded border border-gray-200"
+                >
+                  {size}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         </div>
       </div>
     </div>

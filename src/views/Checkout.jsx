@@ -23,7 +23,6 @@ export default function Checkout() {
   const navigate = useNavigate();
 
   if (items.length === 0) {
-    toast.info("Tu carrito está vacío", { position: "bottom-right" });
     return <Navigate to="/cart" replace />;
   }
 
@@ -266,39 +265,61 @@ export default function Checkout() {
 
       await Promise.all(orderPromises);
 
+      // Actualizar stock por talle de cada producto
+      const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
+
       // Actualizar stock de cada producto
       const stockUpdatePromises = items.map(async (item) => {
-      const newStock = item.stock - item.qty;
+        // Obtener el producto completo para tener el array de stock actual
+        const getResponse = await fetch(`http://localhost:4003/cloth/${item.productId}`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
 
-        const updatedProduct = {
-          name: item.name,
-          description: item.description,
-          image: item.imageUrl,
-          price: item.originalPrice,
-          size: item.size,
-          category: item.category?.id,
-          stock: newStock,
-          discount: item.discount,
-          shop: item.shopId,
-        };
+        if (!getResponse.ok) {
+          console.error(`Error al obtener producto ${item.name}`);
+          return;
+        }
 
-        const response = await fetch(
-          `http://localhost:4003/cloth/${item.productId}`,
-          {
+        const productData = await getResponse.json();
+        const currentStockArray = Array.isArray(productData.stock) 
+          ? productData.stock 
+          : [0, 0, 0, 0, 0, 0];
+
+        // Actualizar solo el stock del talle específico
+        const sizeIndex = sizes.indexOf(item.size);
+        if (sizeIndex !== -1) {
+          const newStockArray = [...currentStockArray];
+          newStockArray[sizeIndex] = Math.max(0, currentStockArray[sizeIndex] - item.qty);
+
+          // Preparar datos del producto para actualización
+          const updatedProduct = {
+            name: item.name,
+            description: item.description,
+            image: item.imageUrl,
+            price: item.originalPrice,
+            size: item.size,
+            category: item.category?.id,
+            stock: newStockArray,
+            discount: item.discount,
+            shop: item.shopId,
+          };
+
+          const response = await fetch(`http://localhost:4003/cloth/${item.productId}`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
+              "Authorization": `Bearer ${token}`
             },
-            body: JSON.stringify(updatedProduct),
-          }
-        );
+            body: JSON.stringify(updatedProduct)
+          });
 
-        if (!response.ok) {
-          console.error(
-            `Error al actualizar stock del producto ${item.name}`,
-            response.status
-          );
+          if (!response.ok) {
+            console.error(`Error al actualizar stock del producto ${item.name}`);
+          }
+
+          return response;
         }
       });
 

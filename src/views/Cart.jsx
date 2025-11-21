@@ -1,5 +1,4 @@
 // src/views/Cart.jsx
-import { useState } from "react";
 import { useSelector } from "react-redux";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useCart } from "../components/CartContext";
@@ -8,12 +7,10 @@ import Header from "../components/Header";
 
 export default function Cart() {
   // 1) Guard de sesión
-  const { token, user } = useSelector((state) => state.auth);
-  const userId = user?.userId;
+  const { token } = useSelector((state) => state.auth);
   if (!token) return <Navigate to="/login" replace />;
 
   const navigate = useNavigate();
-  const [isProcessing, setIsProcessing] = useState(false);
 
   // 2) Obtenemos el carrito del contexto
   const cart = useCart();
@@ -21,7 +18,6 @@ export default function Cart() {
   const subtotal = cart?.subtotal ?? 0;
   const setQty = cart?.setQty ?? (() => {});
   const removeItem = cart?.removeItem ?? (() => {});
-  const clear = cart?.clear ?? (() => {});
 
   const handleIncreaseQty = (item) => {
     if (item.qty >= item.stock) {
@@ -39,11 +35,11 @@ export default function Cart() {
   };
 
   const handleGoToCheckout = () => {
-  if (items.length === 0) {
-    toast.info("Tu carrito está vacío");
-    return;
+    if (items.length === 0) {
+      toast.info("Tu carrito está vacío");
+      return;
     }
-  navigate("/checkout");
+    navigate("/checkout");
   };
 
   return (

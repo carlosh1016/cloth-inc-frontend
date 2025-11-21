@@ -9,6 +9,8 @@ const ShopDashboard = ({ shop }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
   
   // Estados para los modales
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -112,13 +114,23 @@ const ShopDashboard = ({ shop }) => {
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">En stock:</span>
               <span className="font-semibold text-gray-900">
-                {products.filter(p => p.stock > 0).length}
+                {products.filter(p => {
+                  const totalStock = Array.isArray(p.stock) 
+                    ? p.stock.reduce((sum, s) => sum + s, 0)
+                    : p.stock;
+                  return totalStock > 0;
+                }).length}
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Agotados:</span>
               <span className="font-semibold text-gray-900">
-                {products.filter(p => p.stock === 0).length}
+                {products.filter(p => {
+                  const totalStock = Array.isArray(p.stock) 
+                    ? p.stock.reduce((sum, s) => sum + s, 0)
+                    : p.stock;
+                  return totalStock === 0;
+                }).length}
               </span>
             </div>
           </div>
@@ -182,7 +194,13 @@ const ShopDashboard = ({ shop }) => {
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product) => (
+          {products.map((product) => {
+            const stockArray = Array.isArray(product.stock) ? product.stock : [];
+            const totalStock = stockArray.reduce((sum, s) => sum + s, 0);
+          
+          
+          
+          return (
             <div
               key={product.id}
               className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
@@ -203,12 +221,12 @@ const ShopDashboard = ({ shop }) => {
                   </div>
                 )}
                 {/* Badge de stock */}
-                {product.stock === 0 && (
+                {totalStock === 0 && (
                   <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
                     Agotado
                   </span>
                 )}
-                {product.stock > 0 && product.stock < 10 && (
+                {totalStock > 0 && totalStock < 10 && (
                   <span className="absolute top-2 left-2 bg-orange-500 text-white text-xs px-2 py-1 rounded">
                     Poco stock
                   </span>
@@ -237,16 +255,30 @@ const ShopDashboard = ({ shop }) => {
                       ${product.price.toFixed(2)}
                     </span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Stock:</span>
-                    <span className={`font-semibold ${product.stock === 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                      {product.stock}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Talle:</span>
-                    <span className="font-semibold text-gray-900">{product.size}</span>
-                  </div>
+
+                  {/* Stock total */}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Stock total:</span>
+                      <span className={`font-semibold ${totalStock === 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                        {totalStock}
+                      </span>
+                    </div>
+
+                    {/* Talles disponibles */}
+                    <div className="pt-2 border-t border-gray-100">
+                      <span className="text-xs text-gray-600 font-medium">Talles disponibles:</span>
+                      <div className="mt-1 grid grid-cols-2 gap-1 text-xs">
+                        {sizes.map((size, index) => (
+                          <div key={size} className="flex justify-between">
+                            <span className="text-gray-700">{size}:</span>
+                            <span className={`font-medium ${stockArray[index] === 0 ? 'text-gray-400' : 'text-gray-900'}`}>
+                              {stockArray[index] || 0}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  
                   {product.category && (
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Categoría:</span>
@@ -272,7 +304,8 @@ const ShopDashboard = ({ shop }) => {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </main>
 

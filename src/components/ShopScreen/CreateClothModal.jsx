@@ -11,7 +11,6 @@ const CreateProductModal = ({ onClose, onProductCreated, shopId }) => {
     price: "",
     size: "M",
     category: "",
-    stock: "",
     discount: "0",
   });
   const [imagePreview, setImagePreview] = useState(null);
@@ -23,6 +22,10 @@ const CreateProductModal = ({ onClose, onProductCreated, shopId }) => {
   const token = localStorage.getItem("cloth-inc-token");
 
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
+
+  const [stockBySizes, setStockBySizes] = useState(
+  sizes.map(() => 0)
+  );
 
   // Cargar categorías al montar el componente
   useEffect(() => {
@@ -62,6 +65,12 @@ const CreateProductModal = ({ onClose, onProductCreated, shopId }) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
   };
+
+  const handleStockChange = (index, value) => {
+  const newStock = [...stockBySizes];
+  newStock[index] = parseInt(value) || 0;
+  setStockBySizes(newStock);
+};
 
   // Manejar la selección de imagen
   const handleImageChange = (e) => {
@@ -125,8 +134,9 @@ const CreateProductModal = ({ onClose, onProductCreated, shopId }) => {
         throw new Error("El precio debe ser mayor a 0");
       }
 
-      if (parseInt(form.stock) < 0) {
-        throw new Error("El stock no puede ser negativo");
+      const totalStock = stockBySizes.reduce((sum, stock) => sum + stock, 0);
+      if (totalStock === 0) {
+        throw new Error("Debes agregar stock para al menos un talle");
       }
 
       const productData = {
@@ -136,7 +146,7 @@ const CreateProductModal = ({ onClose, onProductCreated, shopId }) => {
         price: parseFloat(form.price),
         size: form.size,
         category: parseInt(form.category),
-        stock: parseInt(form.stock),
+        stock: stockBySizes,
         discount: parseFloat(form.discount),
         shop: shopId,
       };
@@ -176,7 +186,7 @@ const CreateProductModal = ({ onClose, onProductCreated, shopId }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 overflow-y-auto p-4">
+    <div className="fixed inset-0 bg-white/30 backdrop-blur-md bg-opacity-40 flex items-center justify-center z-50 overflow-y-auto p-4">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4 sticky top-0 bg-white pb-2 border-b">
           <h2 className="text-xl font-semibold text-gray-900">Crear nuevo producto</h2>
@@ -283,7 +293,7 @@ const CreateProductModal = ({ onClose, onProductCreated, shopId }) => {
               )}
             </div>
 
-            {/* Fila: Precio y Stock */}
+            {/* Fila: Precio y Categoria */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
@@ -300,44 +310,6 @@ const CreateProductModal = ({ onClose, onProductCreated, shopId }) => {
                   className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="0.00"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Stock *
-                </label>
-                <input
-                  type="number"
-                  name="stock"
-                  value={form.stock}
-                  onChange={handleChange}
-                  required
-                  min="0"
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="0"
-                />
-              </div>
-            </div>
-
-            {/* Fila: Talle y Categoría */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Talle *
-                </label>
-                <select
-                  name="size"
-                  value={form.size}
-                  onChange={handleChange}
-                  required
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {sizes.map((size) => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               <div>
@@ -360,6 +332,34 @@ const CreateProductModal = ({ onClose, onProductCreated, shopId }) => {
                 </select>
               </div>
             </div>
+
+            {/* Fila: Talle y Stock */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Stock por Talle *
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {sizes.map((size, index) => (
+                  <div key={size} className="flex items-center gap-3 bg-gray-50 p-3 rounded-md border border-gray-200">
+                    <label className="text-sm font-semibold text-gray-700 min-w-[35px]">
+                      {size}
+                    </label>
+                    <input
+                      type="number"
+                      value={stockBySizes[index]}
+                      onChange={(e) => handleStockChange(index, e.target.value)}
+                      min="0"
+                      className="flex-1 border border-gray-300 rounded-md p-2 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0"
+                    />
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Total de unidades: {stockBySizes.reduce((sum, stock) => sum + stock, 0)}
+              </p>
+            </div>
+
 
             {/* Descuento */}
             <div>
