@@ -2,9 +2,10 @@
 import { ShoppingCart, Package, Tag, Store } from 'lucide-react';
 import { useCart } from '../../components/CartContext';
 import { toast } from 'react-toastify';
+import { useSelector } from 'react-redux';
 
 export default function ProductInfo({ product }) {
-  const userId = localStorage.getItem("cloth-inc-user-id");
+  const userId = useSelector((state) => state.auth.user.userId);
   const { name, price, size, stock, discount, category, shop } = product;
   const cart = useCart();
   

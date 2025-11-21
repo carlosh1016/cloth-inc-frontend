@@ -85,7 +85,14 @@ export default function Checkout() {
 
   const handleShippingChange = (e) => {
     const { name, value } = e.target;
-    setShipping((prev) => ({ ...prev, [name]: value }));
+    
+    // Si es el campo fullName, solo permitir letras y espacios
+    if (name === "fullName") {
+      const filteredValue = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g, "");
+      setShipping((prev) => ({ ...prev, [name]: filteredValue }));
+    } else {
+      setShipping((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   // ---------- MÉTODO DE PAGO + TARJETA ----------
@@ -132,6 +139,14 @@ export default function Checkout() {
       !shipping.zip
     ) {
       toast.error("Completá todos los datos obligatorios de envío.", {
+        position: "bottom-right",
+      });
+      return;
+    }
+
+    // Validar teléfono si se completó (debe tener exactamente 13 dígitos)
+    if (shipping.phone && shipping.phone.length !== 13) {
+      toast.error("El teléfono debe tener exactamente 13 dígitos.", {
         position: "bottom-right",
       });
       return;
@@ -392,10 +407,20 @@ return (
                   </label>
                   <input
                     name="phone"
+                    type="tel"
                     value={shipping.phone}
-                    onChange={handleShippingChange}
+                    maxLength={13}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "");
+                      setShipping((prev) => ({ ...prev, phone: value }));
+                    }}
                     className="mt-1 w-full rounded-lg border px-3 py-2"
                   />
+                  {shipping.phone.length > 0 && shipping.phone.length !== 13 && (
+                    <p className="text-sm text-red-500 mt-1">
+                      El teléfono debe tener exactamente 13 dígitos.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -428,6 +453,7 @@ return (
                         onChange={(e) =>
                         setCard((prev) => ({ ...prev, holder: e.target.value }))
                         }
+                        autoComplete="off"
                         className="mt-1 w-full rounded-lg border px-3 py-2"
                     />
                     {card.holder !== undefined && card.holder.trim().length === 0 && (
@@ -447,6 +473,7 @@ return (
                       const value = e.target.value.replace(/\D/g, "");
                       setCard((prev) => ({ ...prev, number: value }));
                     }}
+                    autoComplete="off"
                     className="mt-1 w-full rounded-lg border px-3 py-2"
                   />
                   {card.number.length > 0 && card.number.length !== 16 && (
@@ -469,6 +496,7 @@ return (
                         if (v.length === 2 && !v.includes("/")) v += "/";
                         setCard((prev) => ({ ...prev, exp: v }));
                       }}
+                      autoComplete="off"
                       className="mt-1 w-full rounded-lg border px-3 py-2"
                     />
                     {card.exp && !isValidExp(card.exp) && (
@@ -487,6 +515,7 @@ return (
                         const value = e.target.value.replace(/\D/g, "");
                         setCard((prev) => ({ ...prev, cvv: value }));
                       }}
+                      autoComplete="off"
                       className="mt-1 w-full rounded-lg border px-3 py-2"
                     />
                     {card.cvv.length > 0 && card.cvv.length !== 3 && (
