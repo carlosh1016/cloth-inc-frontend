@@ -3,6 +3,7 @@ import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, 
 import storage from 'redux-persist/lib/storage'; // localStorage por defecto
 import authReducer from './loginSlice'; // authReducer es el reducer de autenticación
 import registerReducer from './registerSlice'; // registerReducer es el reducer de registro
+import clothReducer from './clothSlice'; // clothReducer es el reducer de productos
 
 // Configuración de persistencia para el slice auth
 const authPersistConfig = {
@@ -17,6 +18,7 @@ export const store = configureStore({
   reducer: {
     auth: persistedAuthReducer,
     register: registerReducer,
+    cloths: clothReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

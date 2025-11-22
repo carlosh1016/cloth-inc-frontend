@@ -1,53 +1,44 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect} from "react";
 import Header from "../components/Header";
 import ImageCarousel from "../components/HomeScreen/ImageCarousel";
 import Section from "../components/HomeScreen/Section";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchProducts } from "../Redux/clothSlice";
+import { shuffle } from "../utils/shuffle";
 
 export default function Home() {
-  const [cloths, setCloths] = useState([]);
+  const dispatch = useDispatch();
+  const { items, error, loading } = useSelector((state) => state.cloths);
 
   useEffect(() => {
-    const requestOptions = {
-      method: "GET",
-      redirect: "follow",
-    };
+    dispatch(fetchProducts());
+  }, [dispatch]);
 
-    fetch("http://localhost:4003/cloth", requestOptions)
-      .then((response) => {
-        if (!response.ok) {
-          if (response.status === 404) {
-            toast.error("Prenda no encontrada", { position: "bottom-right" });
-          } else {
-            toast.error(`Error del servidor: ${response.status}`, {
-              position: "bottom-right",
-            });
-          }
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        setCloths(data);
-      })
-      .catch((err) => console.error(err));
-  }, []);
+  if (loading) {
+    return <div>Cargando productos...</div>;
+  }
+  if (error) {
+    return <p>Error al cargar los productos: {error}</p>;
+  }
 
   // Ordenar y filtrar usando el estado actualizado
-  const clothsNew = [...cloths]
+  const clothsNew = [...items]
     .sort((a, b) => b.id - a.id)
     .slice(0, 4);
 
-  const clothsSale = [...cloths]
+  const clothsSale = [...items]
     .filter((cloth) => cloth.discount > 0)
     .sort((a, b) => b.discount - a.discount)
     .slice(0, 4);
 
+  const randomItems = shuffle(items);
+
   return (
     <div className="mx-auto max-w-7xl">
       <Header />
-      <ImageCarousel products={cloths} />
+      <ImageCarousel products={randomItems} />
       <Section title="Nuevos Productos" products={clothsNew} />
       <Section title="Ofertas" products={clothsSale} />
     </div>
