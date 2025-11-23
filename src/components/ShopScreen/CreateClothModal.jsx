@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { filesToBase64, validateImageFile } from "../../utils/imageUtils";
+import { useDispatch } from "react-redux";
+import { createProduct } from "../../Redux/clothSlice";
 
 const API_URL = "http://localhost:4003";
 
@@ -20,6 +22,8 @@ const CreateProductModal = ({ onClose, onProductCreated, shopId }) => {
   const [loading, setLoading] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [error, setError] = useState(null);
+
+  const dispatch = useDispatch();
 
   const { token } = useSelector((state) => state.auth);
 
@@ -116,85 +120,47 @@ const CreateProductModal = ({ onClose, onProductCreated, shopId }) => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+  e.preventDefault();
+  setLoading(true);
+  setError(null);
 
-    try {
-      // Validar token
-      if (!token) {
-        throw new Error("No estás autenticado. Por favor, inicia sesión nuevamente");
-      }
+  try {
+    if (!token) throw new Error("No estás autenticado.");
+    if (!form.category) throw new Error("Debes seleccionar una categoría");
+    if (parseFloat(form.price) <= 0) throw new Error("El precio debe ser mayor a 0");
 
-      // Validaciones
-      if (!form.category) {
-        throw new Error("Debes seleccionar una categoría");
-      }
+    const totalStock = stockBySizes.reduce((sum, s) => sum + s, 0);
+    if (totalStock === 0) throw new Error("Debes agregar stock");
 
-      if (parseFloat(form.price) <= 0) {
-        throw new Error("El precio debe ser mayor a 0");
-      }
+    const productData = {
+      name: form.name,
+      description: form.description,
+      price: parseFloat(form.price),
+      size: form.size,
+      category: parseInt(form.category),
+      discount: parseFloat(form.discount),
+      stock: stockBySizes,
+      images: imageBase64Array,
+      shop: shopId,
+    };
 
-      const totalStock = stockBySizes.reduce((sum, stock) => sum + stock, 0);
-      if (totalStock === 0) {
-        throw new Error("Debes agregar stock para al menos un talle");
-      }
+    const newProduct = await dispatch(
+      createProduct({ product: productData, token })
+    ).unwrap();
 
-      // Preparar las imágenes: remover el prefijo data:image/...;base64, si existe
-      // El backend acepta con o sin prefijo, pero es mejor enviarlo sin prefijo para consistencia
-      const imagesForBackend = imageBase64Array.map(base64 => {
-        // Si tiene prefijo, extraer solo el Base64
-        if (base64.includes(',')) {
-          return base64.split(',')[1];
-        }
-        return base64;
-      });
+    toast.success("Producto creado con éxito");
+    onProductCreated(newProduct);
+    onClose();
 
-      const productData = {
-        name: form.name,
-        description: form.description,
-        images: imagesForBackend.length > 0 ? imagesForBackend : [], // Array de Base64 strings
-        price: parseFloat(form.price),
-        size: form.size,
-        category: parseInt(form.category),
-        stock: stockBySizes,
-        discount: parseFloat(form.discount),
-        shop: shopId,
-      };
+  } catch (err) {
+    setError(err.message || err);
+    toast.error(err.message || err);
+  } finally {
+    setLoading(false);
+  }
+};
 
-      const res = await fetch(`${API_URL}/cloth`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(productData),
-      });
 
-      if (!res.ok) {
-        const errorData = await res.text();
-        throw new Error(errorData || "Error al crear producto");
-      }
-
-      const newProduct = await res.json();
-
-      toast.success("¡Producto creado exitosamente!", {
-        position: "bottom-right",
-      });
-
-      // Notificar al componente padre
-      onProductCreated(newProduct);
-      onClose();
-    } catch (err) {
-      console.error("Error creando producto:", err);
-      setError(err.message);
-      toast.error(err.message, {
-        position: "bottom-right",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="fixed inset-0 bg-white/30 backdrop-blur-md bg-opacity-40 flex items-center justify-center z-50 overflow-y-auto p-4">

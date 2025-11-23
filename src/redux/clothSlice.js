@@ -8,6 +8,25 @@ export const fetchProducts = createAsyncThunk("cloth/fetchCloths", async () => {
     return data;
 });
 
+export const createProduct = createAsyncThunk(
+  "cloth/createCloth",
+  async ({ product, token }, thunkAPI) => {
+    try {
+      const { data } = await axios.post(URL, product, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return data;
+    } catch (err) {
+      return thunkAPI.rejectWithValue(
+        err.response?.data || err.message || "Error creando producto"
+      );
+    }
+  }
+);
+
+
 const clothSlice = createSlice({
     name: 'cloths',
     initialState: {
@@ -29,6 +48,14 @@ const clothSlice = createSlice({
             .addCase(fetchProducts.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.error.message;
+            })
+            .addCase(createProduct.fulfilled, (state, action) => {
+                state.loading = false;
+                state.items.push(action.payload);
+            })
+            .addCase(createProduct.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
             });
     }
 });
