@@ -5,6 +5,7 @@ import authReducer from './loginSlice'; // authReducer es el reducer de autentic
 import registerReducer from './registerSlice'; // registerReducer es el reducer de registro
 import clothReducer from './clothSlice'; // clothReducer es el reducer de productos
 import shopReducer from './shopSlice'; // shopReducer es el reducer de tiendas
+import categoriesReducer from './categoriesSlice'; // categoriesReducer es el reducer de categorías
 
 // Configuración de persistencia para el slice auth
 const authPersistConfig = {
@@ -21,6 +22,7 @@ export const store = configureStore({
     register: registerReducer,
     cloths: clothReducer,
     shop: shopReducer,
+    categories: categoriesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

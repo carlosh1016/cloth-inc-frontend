@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { filesToBase64, validateImageFile } from "../../utils/imageUtils";
-import { createCloth } from "../../Redux/clothSlice";
+import { createCloth } from "../../redux/clothSlice";
+import { fetchCategories, selectCategories, selectCategoriesLoading, selectCategoriesError } from "../../redux/categoriesSlice";
 
 const API_URL = "http://localhost:4003";
 
@@ -17,42 +18,27 @@ const CreateClothModal = ({ onClose, onClothCreated, shopId }) => {
   });
   const [imagePreviews, setImagePreviews] = useState([]);
   const [imageBase64Array, setImageBase64Array] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [loadingCategories, setLoadingCategories] = useState(true);
   const [error, setError] = useState(null);
-
   const dispatch = useDispatch();
   const { token } = useSelector((state) => state.auth);
-
+  const categories = useSelector(selectCategories) || [];
+  const loadingCategories = useSelector(selectCategoriesLoading);
+  const categoriesError = useSelector(selectCategoriesError);
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
   const [stockBySizes, setStockBySizes] = useState(sizes.map(() => 0));
 
   // Cargar categorías al montar el componente
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch(`${API_URL}/category`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Error al cargar categorías");
-
-        const data = await res.json();
-        setCategories(data);
-
-        if (data.length > 0) {
-          setForm((prev) => ({ ...prev, category: data[0].id }));
-        }
-      } catch (err) {
-        console.error("Error cargando categorías:", err);
-        toast.error("Error al cargar categorías", { position: "bottom-right" });
-      } finally {
-        setLoadingCategories(false);
-      }
-    };
-
-    fetchCategories();
-  }, [token]);
+    if (categories.length === 0 && !loadingCategories) {
+      dispatch(fetchCategories());
+    }
+    
+    // Seleccionar la primera categoría por defecto si existe
+    if (categories.length > 0 && !form.category) {
+      setForm(prev => ({ ...prev, category: categories[0].id }));
+    }
+  }, [dispatch, categories, loadingCategories, form.category]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -236,7 +222,11 @@ const CreateClothModal = ({ onClose, onClothCreated, shopId }) => {
                 <label className="block text-sm font-medium text-gray-700">Categoría *</label>
                 <select name="category" value={form.category} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                   <option value="">Selecciona una categoría</option>
-                  {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                  {Array.isArray(categories) && categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

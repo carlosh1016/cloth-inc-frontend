@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchCategories, selectCategories, selectCategoriesLoading, selectCategoriesError } from "../../redux/categoriesSlice";
 
 const FilterSidebar = ({ filters, onFilterChange, onClearFilters }) => {
   // Tallas estáticas (no requieren endpoint)
   const availableSizes = ["XS", "S", "M", "L", "XL", "XXL"];
-  
+  const dispatch = useDispatch();
+  const categories = useSelector(selectCategories);
+  const { token } = useSelector((state) => state.auth);
+  const loadingCategories = useSelector(selectCategoriesLoading);
+  const categoriesError = useSelector(selectCategoriesError);
   const [availableCategories, setAvailableCategories] = useState([]);
   const [availableBrands, setAvailableBrands] = useState([]);
 
@@ -12,7 +18,6 @@ const FilterSidebar = ({ filters, onFilterChange, onClearFilters }) => {
   const [stockOnly, setStockOnly] = useState(false);
   const [discountOnly, setDiscountOnly] = useState(false);
 
-  const token = localStorage.getItem("cloth-inc-token");
   const requestOptions = {
     method: "GET",
     headers: {
@@ -22,20 +27,13 @@ const FilterSidebar = ({ filters, onFilterChange, onClearFilters }) => {
     redirect: "follow"
   };
 
-  // 🔹 Traer categorías desde API
+// Cargar categorías al montar el componente
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch("http://localhost:4003/category", requestOptions);
-        if (!res.ok) throw new Error("Error al cargar categorías");
-        const data = await res.json();
-        setAvailableCategories(data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchCategories();
-  }, []);
+    if (categories.length === 0 && !loadingCategories) {
+      dispatch(fetchCategories());
+    }
+  }, [dispatch, categories, loadingCategories]);
+
 
   // 🔹 Traer marcas/shops desde API
   useEffect(() => {
