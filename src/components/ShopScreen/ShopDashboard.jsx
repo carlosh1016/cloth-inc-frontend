@@ -4,6 +4,7 @@ import CreateClothModal from "./CreateClothModal";
 import UpdateClothModal from "./UpdateClothModal";
 import DeleteClothModal from "./DeleteClothModal";
 import { fetchCloths } from "../../redux/clothSlice";
+import { getFirstImageUrl } from "../../utils/imageUtils";
 
 const ShopDashboard = ({ shop }) => {
   const dispatch = useDispatch();
@@ -44,9 +45,11 @@ const ShopDashboard = ({ shop }) => {
         {!loading && shopCloths.length === 0 && <p className="text-gray-500">No tienes productos registrados.</p>}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {shopCloths.map((product) => (
+          {shopCloths.map((product) => {
+            const firstImageUrl = getFirstImageUrl(product);
+            return (
             <div key={product.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-              <img src={product.imagesBase64?.[0] ?? product.images?.[0]?.imageBase64 ?? "/fotoProductosEjemplo/Sintitulo.png"} alt={product.name} className="w-full h-48 object-cover rounded mb-3" />
+              <img src={firstImageUrl || "/fotoProductosEjemplo/Sintitulo.png"} alt={product.name} className="w-full h-48 object-cover rounded mb-3" />
               <h4 className="text-gray-900 font-medium">{product.name}</h4>
               <p className="text-gray-600 text-sm mt-1">Precio: ${product.price}</p>
               <p className="text-gray-600 text-sm">Stock: {Array.isArray(product.stock) ? product.stock.reduce((a,b)=>a+(b||0),0) : (product.stock ?? 0)}</p>
@@ -56,13 +59,14 @@ const ShopDashboard = ({ shop }) => {
                 <button onClick={() => setDeleting(product)} className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600">Eliminar</button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </main>
 
-      {showCreate && <CreateClothModal shopId={shop.id} onClose={() => setShowCreate(false)} onClothCreated={(c)=>{ setShowCreate(false); /* opcional: refrescar lista */ }} />}
-      {editing && <UpdateClothModal product={editing} onClose={() => setEditing(null)} onClothCreated={()=>{ setEditing(null); /* refrescar si querés */ }} />}
-      {deleting && <DeleteClothModal product={deleting} onClose={() => setDeleting(null)} onClothCreated={()=>{ setDeleting(null); /* refrescar si querés */ }} />}
+      {showCreate && <CreateClothModal shopId={shop.id} onClose={() => setShowCreate(false)} onClothCreated={(c)=>{ setShowCreate(false); dispatch(fetchCloths()); }} />}
+      {editing && <UpdateClothModal cloth={editing} onClose={() => setEditing(null)} onClothUpdated={()=>{ setEditing(null); dispatch(fetchCloths()); }} />}
+      {deleting && <DeleteClothModal product={deleting} onClose={() => setDeleting(null)} onClothCreated={()=>{ setDeleting(null); dispatch(fetchCloths()); }} />}
     </div>
   );
 };

@@ -134,8 +134,8 @@ const CreateClothModal = ({ onClose, onClothCreated, shopId }) => {
 
   return (
     <div className="fixed inset-0 bg-white/30 backdrop-blur-md bg-opacity-40 flex items-center justify-center z-50 overflow-y-auto p-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4 sticky top-0 bg-white pb-2 border-b">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl px-6 pt-0 pb-0 relative max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4 sticky top-0 bg-white pb-2 border-b -mx-6 px-6 rounded-t-lg">
           <h2 className="text-xl font-semibold text-gray-900">Crear nueva prenda</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl" type="button">
             ×
@@ -153,7 +153,7 @@ const CreateClothModal = ({ onClose, onClothCreated, shopId }) => {
             <p className="text-gray-500">Cargando categorías...</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 pt-6">
             {/* Nombre */}
             <div>
               <label className="block text-sm font-medium text-gray-700">Nombre de la prenda *</label>
@@ -262,7 +262,7 @@ const CreateClothModal = ({ onClose, onClothCreated, shopId }) => {
             </div>
 
             {/* Botones */}
-            <div className="flex justify-end gap-2 mt-6 pt-4 border-t sticky bottom-0 bg-white">
+            <div className="flex justify-end gap-2 pt-4 border-t sticky bottom-0 bg-white -mx-6 px-6 rounded-b-lg">
               <button type="button" onClick={onClose} disabled={loading} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">Cancelar</button>
               <button type="submit" disabled={loading || loadingCategories} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
                 {loading ? "Creando..." : "Crear prenda"}

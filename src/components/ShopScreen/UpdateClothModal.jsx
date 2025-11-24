@@ -52,33 +52,51 @@ const UpdateClothModal = ({ cloth, onClose, onClothUpdated }) => {
   // Prellenar el formulario con los datos del cloth
   useEffect(() => {
     if (cloth) {
+      // Manejar categoría: usar category.id si existe, sino categoryId como fallback
+      const categoryId = cloth.category?.id ?? cloth.categoryId ?? "";
+      
       setForm({
         name: cloth.name || "",
         description: cloth.description || "",
         price: cloth.price || "",
         size: cloth.size || "M",
-        category: cloth.category?.id || "",
+        category: categoryId,
         discount: cloth.discount || "0",
       });
 
-      // Imágenes
+      // Imágenes: manejar tanto images (objetos) como imagesBase64 (strings)
+      let imageUrls = [];
+      let base64Images = [];
+      
       if (cloth.images && Array.isArray(cloth.images) && cloth.images.length > 0) {
-        const imageUrls = imagesToUrls(cloth.images);
-        setImagePreviews(imageUrls);
-        setImageBase64Array(cloth.images.map(img => {
-          if (img.imageBase64.startsWith('data:image/')) return img.imageBase64;
+        // Formato: [{id, imageBase64}]
+        imageUrls = imagesToUrls(cloth.images);
+        base64Images = cloth.images.map(img => {
+          if (img.imageBase64 && img.imageBase64.startsWith('data:image/')) {
+            return img.imageBase64;
+          }
           return `data:image/jpeg;base64,${img.imageBase64}`;
-        }));
+        });
+      } else if (cloth.imagesBase64 && Array.isArray(cloth.imagesBase64) && cloth.imagesBase64.length > 0) {
+        // Formato: [string, string, ...]
+        imageUrls = cloth.imagesBase64.map(imgStr => {
+          if (imgStr.startsWith('data:image/')) {
+            return imgStr;
+          }
+          return `data:image/jpeg;base64,${imgStr}`;
+        });
+        base64Images = imageUrls;
       } else if (cloth.imageBase64) {
+        // Formato antiguo: string único
         const imageUrl = cloth.imageBase64.startsWith('data:image/') 
           ? cloth.imageBase64 
           : `data:image/jpeg;base64,${cloth.imageBase64}`;
-        setImagePreviews([imageUrl]);
-        setImageBase64Array([imageUrl]);
-      } else {
-        setImagePreviews([]);
-        setImageBase64Array([]);
+        imageUrls = [imageUrl];
+        base64Images = [imageUrl];
       }
+      
+      setImagePreviews(imageUrls);
+      setImageBase64Array(base64Images);
 
       // Stock por talles
       if (Array.isArray(cloth.stock)) {
@@ -173,8 +191,8 @@ const UpdateClothModal = ({ cloth, onClose, onClothUpdated }) => {
 
   return (
     <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6 relative max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4 sticky top-0 bg-white pb-2 border-b">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl px-6 pt-0 pb-0 relative max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4 sticky top-0 bg-white pb-2 border-b -mx-6 px-6 rounded-t-lg">
           <h2 className="text-xl font-semibold text-gray-900">Editar Cloth</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl" type="button">×</button>
         </div>
@@ -184,7 +202,7 @@ const UpdateClothModal = ({ cloth, onClose, onClothUpdated }) => {
         {loadingCategories ? (
           <div className="text-center py-8 text-gray-500">Cargando categorías...</div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 pt-6">
             {/* Nombre */}
             <div>
               <label className="block text-sm font-medium text-gray-700">Nombre del cloth *</label>
@@ -282,7 +300,7 @@ const UpdateClothModal = ({ cloth, onClose, onClothUpdated }) => {
             </div>
 
             {/* Botones */}
-            <div className="flex justify-end gap-2 pt-4 border-t sticky bottom-0 bg-white">
+            <div className="flex justify-end gap-2 pt-4 border-t sticky bottom-0 bg-white -mx-6 px-6 rounded-b-lg">
               <button type="button" onClick={onClose} disabled={loading} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
                 Cancelar
               </button>

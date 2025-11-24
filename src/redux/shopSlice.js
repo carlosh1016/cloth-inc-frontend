@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
 
 const API_URL = "http://localhost:4003";
 
@@ -17,21 +18,20 @@ export const fetchShopForUser = createAsyncThunk(
       }
 
       // Primero intentar obtener ownership
-      const ownershipRes = await fetch(`${API_URL}/api/ownerships/user/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (ownershipRes.status === 404) {
-        // No tiene tienda
-        return null;
+      let ownershipData;
+      try {
+        const { data } = await axios.get(`${API_URL}/api/ownerships/user/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        ownershipData = data;
+      } catch (err) {
+        if (err.response?.status === 404) {
+          // No tiene tienda
+          return null;
+        }
+        const errorMessage = err.response?.data || err.message || "Error al obtener ownership";
+        return rejectWithValue({ status: err.response?.status || null, message: errorMessage });
       }
-
-      if (!ownershipRes.ok) {
-        const txt = await ownershipRes.text();
-        return rejectWithValue({ status: ownershipRes.status, message: txt || "Error al obtener ownership" });
-      }
-
-      const ownershipData = await ownershipRes.json();
 
       // ownershipData puede venir en varios formatos. Intentamos extraer shopId / shop_id / shop
       const shopId =
@@ -47,17 +47,15 @@ export const fetchShopForUser = createAsyncThunk(
       }
 
       // Obtener tienda por id
-      const shopRes = await fetch(`${API_URL}/shops/${shopId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!shopRes.ok) {
-        const txt = await shopRes.text();
-        return rejectWithValue({ status: shopRes.status, message: txt || "Error al obtener shop" });
+      try {
+        const { data } = await axios.get(`${API_URL}/shops/${shopId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        return data;
+      } catch (err) {
+        const errorMessage = err.response?.data || err.message || "Error al obtener shop";
+        return rejectWithValue({ status: err.response?.status || null, message: errorMessage });
       }
-
-      const shopData = await shopRes.json();
-      return shopData;
     } catch (err) {
       return rejectWithValue({ status: null, message: err.message || "Error de red" });
     }
@@ -77,32 +75,27 @@ export const createShopWithOwnership = createAsyncThunk(
       }
 
       // Crear shop
-      const createRes = await fetch(`${API_URL}/shops`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name, address, cuit }),
-      });
-
-      if (!createRes.ok) {
-        const txt = await createRes.text();
-        return rejectWithValue({ status: createRes.status, message: txt || "Error al crear shop" });
+      let newShop;
+      try {
+        const { data } = await axios.post(`${API_URL}/shops`, { name, address, cuit }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        newShop = data;
+      } catch (err) {
+        const errorMessage = err.response?.data || err.message || "Error al crear shop";
+        return rejectWithValue({ status: err.response?.status || null, message: errorMessage });
       }
 
-      const newShop = await createRes.json();
-
-      const ownershipRes = await fetch(`${API_URL}/api/ownerships`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ user_id: userId, shop_id: newShop.id }),
-      });
-
-      if (!ownershipRes.ok) {
-        const txt = await ownershipRes.text();
-        return rejectWithValue({ status: ownershipRes.status, message: txt || "Error al crear ownership" });
+      try {
+        await axios.post(`${API_URL}/api/ownerships`, { user_id: userId, shop_id: newShop.id }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        // Devolver la shop creada
+        return newShop;
+      } catch (err) {
+        const errorMessage = err.response?.data || err.message || "Error al crear ownership";
+        return rejectWithValue({ status: err.response?.status || null, message: errorMessage });
       }
-
-      // Devolver la shop creada
-      return newShop;
     } catch (err) {
       return rejectWithValue({ status: null, message: err.message || "Error de red" });
     }
