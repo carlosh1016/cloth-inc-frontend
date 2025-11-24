@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { ShirtIcon, LogInIcon, LogOutIcon, SearchIcon, ShoppingCartIcon, StoreIcon, XIcon } from "lucide-react";
-import { useCart } from "./CartContext";
+import { selectCartCount } from "../redux/cartSlice";
 import { toast } from "react-toastify";
 import { logout as logoutAction } from "../redux/loginSlice";
 
@@ -15,8 +15,7 @@ export default function Header({ searchQuery = "", onSearchChange, showSearchSug
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const cart = useCart();
-  const count = cart?.count ?? 0;
+  const count = useSelector(selectCartCount);
 
   const handleCartClick = (e) => {
     if (!token) {

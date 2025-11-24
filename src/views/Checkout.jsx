@@ -1,12 +1,22 @@
 // src/views/Checkout.jsx
-import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+
 import Header from "../components/Header";
-import { useCart } from "../components/CartContext";
+import {
+  selectCartItems,
+  selectCartSubtotal,
+  selectCartCount,
+  selectCartShopIds,
+  clearCart,
+} from "../redux/cartSlice";
 
 export default function Checkout() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
   // ---------- AUTH ----------
   const { token, user } = useSelector((state) => state.auth);
   const userId = user?.userId;
@@ -16,28 +26,24 @@ export default function Checkout() {
   }
 
   // ---------- CARRITO ----------
-  const cart = useCart();
-  const items = cart?.items ?? [];
-  const subtotal = cart?.subtotal ?? 0;
-  const clear = cart?.clear ?? (() => {});
-  const navigate = useNavigate();
+  const items = useSelector(selectCartItems);
+  const subtotal = useSelector(selectCartSubtotal);
+  const count = useSelector(selectCartCount);
+  const shopIds = useSelector(selectCartShopIds); // ya vienen únicos del selector
 
   if (items.length === 0) {
     return <Navigate to="/cart" replace />;
   }
 
   // ---------- TIENDAS DEL CARRITO ----------
-  const uniqueShops = [...new Set(items.map((item) => item.shopId))];
+  // Lista única de shops del carrito
+  const uniqueShops = shopIds;
 
   // Dirección de cada tienda: { [shopId]: "dirección" }
   const [storeAddresses, setStoreAddresses] = useState({});
 
   useEffect(() => {
-    const shopIds = [
-      ...new Set(items.map((item) => item.shopId).filter(Boolean)),
-    ];
-
-    if (shopIds.length === 0) {
+    if (!shopIds.length) {
       setStoreAddresses({});
       return;
     }
@@ -51,6 +57,7 @@ export default function Checkout() {
                 Authorization: `Bearer ${token}`,
               },
             });
+
             if (!res.ok) return [shopId, "Dirección no disponible"];
             const data = await res.json();
 
@@ -70,7 +77,7 @@ export default function Checkout() {
     };
 
     fetchShops();
-  }, [items, token]);
+  }, [shopIds, token]);
 
   // ---------- DATOS DE ENVÍO ----------
   const [shipping, setShipping] = useState({
@@ -84,7 +91,7 @@ export default function Checkout() {
 
   const handleShippingChange = (e) => {
     const { name, value } = e.target;
-    
+
     // Si es el campo fullName, solo permitir letras y espacios
     if (name === "fullName") {
       const filteredValue = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]/g, "");
@@ -143,7 +150,7 @@ export default function Checkout() {
       return;
     }
 
-    // Validar teléfono si se completó (debe tener exactamente 13 dígitos)
+    // Validar teléfono si se completó (exactamente 13 dígitos)
     if (shipping.phone && shipping.phone.length !== 13) {
       toast.error("El teléfono debe tener exactamente 13 dígitos.", {
         position: "bottom-right",
@@ -155,10 +162,10 @@ export default function Checkout() {
     if (payMethod === "CREDIT_CARD" || payMethod === "DEBIT_CARD") {
       if (!card.holder || card.holder.trim().length === 0) {
         toast.error("Ingresá el nombre del titular de la tarjeta.", {
-            position: "bottom-right",
+          position: "bottom-right",
         });
         return;
-    }
+      }
       if (card.number.length !== 16) {
         toast.error("El número de tarjeta debe tener 16 dígitos.", {
           position: "bottom-right",
@@ -179,9 +186,10 @@ export default function Checkout() {
       }
     }
 
+    // Efectivo solo si hay UNA tienda
     if (payMethod === "CASH" && uniqueShops.length !== 1) {
       toast.error(
-          "El pago en efectivo solo está disponible cuando todos los productos pertenecen a una sola tienda.",
+        "El pago en efectivo solo está disponible cuando todos los productos pertenecen a una sola tienda.",
         { position: "bottom-right" }
       );
       return;
@@ -193,8 +201,13 @@ export default function Checkout() {
       return;
     }
 
-    // Validar stock
-    const insufficientStock = items.find((item) => item.qty > item.stock);
+    // Validar stock con maxQty (lo que pusimos en el carrito)
+    const insufficientStock = items.find(
+      (item) =>
+        item.maxQty != null &&
+        typeof item.maxQty === "number" &&
+        item.qty > item.maxQty
+    );
     if (insufficientStock) {
       toast.error(`No hay suficiente stock de "${insufficientStock.name}".`, {
         position: "bottom-right",
@@ -214,7 +227,7 @@ export default function Checkout() {
 
     try {
       // Agrupar por tienda
-    const itemsByShop = items.reduce((acc, item) => {
+      const itemsByShop = items.reduce((acc, item) => {
         const shopId = item.shopId;
         if (!shopId) {
           throw new Error(
@@ -226,13 +239,15 @@ export default function Checkout() {
         return acc;
       }, {});
 
-    // Crear órdenes por tienda
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+      // Crear órdenes por tienda
+      const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
 
-    const orderPromises = Object.entries(itemsByShop).map(
-    async ([shopId, shopItems]) => {
-        const amount = shopItems.reduce(
-          (sum, item) => sum + item.price * item.qty, 0 );
+      const orderPromises = Object.entries(itemsByShop).map(
+        async ([shopId, shopItems]) => {
+          const amount = shopItems.reduce(
+            (sum, item) => sum + item.price * item.qty,
+            0
+          );
 
           const orderData = {
             amount,
@@ -268,14 +283,16 @@ export default function Checkout() {
       // Actualizar stock por talle de cada producto
       const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
 
-      // Actualizar stock de cada producto
       const stockUpdatePromises = items.map(async (item) => {
         // Obtener el producto completo para tener el array de stock actual
-        const getResponse = await fetch(`http://localhost:4003/cloth/${item.productId}`, {
-          headers: {
-            "Authorization": `Bearer ${token}`
+        const getResponse = await fetch(
+          `http://localhost:4003/cloth/${item.productId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
-        });
+        );
 
         if (!getResponse.ok) {
           console.error(`Error al obtener producto ${item.name}`);
@@ -283,40 +300,47 @@ export default function Checkout() {
         }
 
         const productData = await getResponse.json();
-        const currentStockArray = Array.isArray(productData.stock) 
-          ? productData.stock 
+        const currentStockArray = Array.isArray(productData.stock)
+          ? productData.stock
           : [0, 0, 0, 0, 0, 0];
 
         // Actualizar solo el stock del talle específico
         const sizeIndex = sizes.indexOf(item.size);
         if (sizeIndex !== -1) {
           const newStockArray = [...currentStockArray];
-          newStockArray[sizeIndex] = Math.max(0, currentStockArray[sizeIndex] - item.qty);
+          newStockArray[sizeIndex] = Math.max(
+            0,
+            currentStockArray[sizeIndex] - item.qty
+          );
 
-          // Preparar datos del producto para actualización
           const updatedProduct = {
-            name: item.name,
-            description: item.description,
-            image: item.imageUrl,
-            price: item.originalPrice,
+            name: productData.name,
+            description: productData.description,
+            image: productData.image,
+            price: productData.price,
             size: item.size,
-            category: item.category?.id,
+            category: productData.category?.id ?? productData.category,
             stock: newStockArray,
-            discount: item.discount,
-            shop: item.shopId,
+            discount: productData.discount,
+            shop: productData.shop,
           };
 
-          const response = await fetch(`http://localhost:4003/cloth/${item.productId}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`
-            },
-            body: JSON.stringify(updatedProduct)
-          });
+          const response = await fetch(
+            `http://localhost:4003/cloth/${item.productId}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify(updatedProduct),
+            }
+          );
 
           if (!response.ok) {
-            console.error(`Error al actualizar stock del producto ${item.name}`);
+            console.error(
+              `Error al actualizar stock del producto ${item.name}`
+            );
           }
 
           return response;
@@ -330,7 +354,8 @@ export default function Checkout() {
         autoClose: 2000,
       });
 
-      clear();
+      // 🔁 AHORA limpiamos el carrito de Redux, no el context
+      dispatch(clearCart());
       navigate("/");
     } catch (error) {
       console.error(error);
@@ -346,7 +371,7 @@ export default function Checkout() {
     }
   };
 
-return (
+  return (
     <>
       <Header />
       <main className="mx-auto max-w-5xl px-6 py-8 grid gap-8 grid-cols-2">
@@ -437,11 +462,12 @@ return (
                     }}
                     className="mt-1 w-full rounded-lg border px-3 py-2"
                   />
-                  {shipping.phone.length > 0 && shipping.phone.length !== 13 && (
-                    <p className="text-sm text-red-500 mt-1">
-                      El teléfono debe tener exactamente 13 dígitos.
-                    </p>
-                  )}
+                  {shipping.phone.length > 0 &&
+                    shipping.phone.length !== 13 && (
+                      <p className="text-sm text-red-500 mt-1">
+                        El teléfono debe tener exactamente 13 dígitos.
+                      </p>
+                    )}
                 </div>
               </div>
             </div>
@@ -468,19 +494,22 @@ return (
             {(payMethod === "CREDIT_CARD" || payMethod === "DEBIT_CARD") && (
               <div className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium">Nombre del titular</label>
-                    <input
-                        value={card.holder || ""}
-                        onChange={(e) =>
-                        setCard((prev) => ({ ...prev, holder: e.target.value }))
-                        }
-                        autoComplete="off"
-                        className="mt-1 w-full rounded-lg border px-3 py-2"
-                    />
-                    {card.holder !== undefined && card.holder.trim().length === 0 && (
-                        <p className="text-sm text-red-500">
+                  <label className="block text-sm font-medium">
+                    Nombre del titular
+                  </label>
+                  <input
+                    value={card.holder || ""}
+                    onChange={(e) =>
+                      setCard((prev) => ({ ...prev, holder: e.target.value }))
+                    }
+                    autoComplete="off"
+                    className="mt-1 w-full rounded-lg border px-3 py-2"
+                  />
+                  {card.holder !== undefined &&
+                    card.holder.trim().length === 0 && (
+                      <p className="text-sm text-red-500">
                         Ingresá el nombre del titular.
-                        </p>
+                      </p>
                     )}
                 </div>
                 <div>
@@ -551,29 +580,30 @@ return (
 
             {/* EFECTIVO */}
             {payMethod === "CASH" && (
-            <div className="mt-4 p-4 rounded-lg bg-yellow-50 border border-yellow-300 text-sm">
+              <div className="mt-4 p-4 rounded-lg bg-yellow-50 border border-yellow-300 text-sm">
                 {uniqueShops.length === 1 ? (
-                <p>
+                  <p>
                     Podés pagar en efectivo directamente en la tienda:{" "}
                     <span className="font-semibold">
-                    {storeAddresses[uniqueShops[0]] || "Dirección no disponible"}
+                      {storeAddresses[uniqueShops[0]] ||
+                        "Dirección no disponible"}
                     </span>
-                </p>
+                  </p>
                 ) : (
-                <p className="text-red-600 font-semibold">
-                    El pago en efectivo no está disponible porque tu pedido incluye
-                    productos de más de una tienda.
-                </p>
+                  <p className="text-red-600 font-semibold">
+                    El pago en efectivo no está disponible porque tu pedido
+                    incluye productos de más de una tienda.
+                  </p>
                 )}
-            </div>
+              </div>
             )}
 
             {/* TRANSFERENCIA */}
             {payMethod === "TRANSFER" && (
               <div className="mt-4 p-4 rounded-lg bg-blue-50 border border-blue-200 text-sm">
                 <p>
-                  Te enviaremos los datos bancarios de la tienda por mail
-                  para realizar la transferencia.
+                  Te enviaremos los datos bancarios de la tienda por mail para
+                  realizar la transferencia.
                 </p>
               </div>
             )}
@@ -602,7 +632,9 @@ return (
 
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600">Subtotal</span>
+              <span className="text-gray-600">
+                Subtotal ({count} productos)
+              </span>
               <span className="font-medium text-gray-900">
                 ${Number(subtotal).toFixed(2)}
               </span>

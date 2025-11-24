@@ -9,12 +9,12 @@ import Register from "./views/Register";
 import Search from "./views/Search";
 import Shop from "./views/Shop";
 import Cart from "./views/Cart";
-import { CartProvider } from "./components/CartContext";
 import Checkout from "./views/Checkout";
+
 
 function App() {
   return (
-    <CartProvider>
+    <>
       <BrowserRouter>
         <ToastContainer
           position="bottom-right"
@@ -40,7 +40,7 @@ function App() {
           <Route path="/shop" element={<Shop />} />
         </Routes>
       </BrowserRouter>
-    </CartProvider>
+    </>
   );
 }
 

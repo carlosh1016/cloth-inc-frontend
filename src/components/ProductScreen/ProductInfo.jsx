@@ -1,116 +1,117 @@
-// src/components/ProductInfo.jsx
-import { useState } from 'react';
-import { ShoppingCart, Package, Tag, Store } from 'lucide-react';
-import { useCart } from '../../components/CartContext';
-import { toast } from 'react-toastify';
-import { useSelector } from 'react-redux';
-import { getFirstImageUrl } from '../../utils/imageUtils';
+// src/components/ProductScreen/ProductInfo.jsx
+import { useState } from "react";
+import { ShoppingCart, Package, Tag, Store } from "lucide-react";
+import { toast } from "react-toastify";
+import { useDispatch, useSelector } from "react-redux";
+import { getFirstImageUrl } from "../../utils/imageUtils";
+import { addItem } from "../../redux/cartSlice";
 
 export default function ProductInfo({ product }) {
-  const userId = useSelector((state) => state.auth.user.userId);
-  const { name, price, size, stock, discount, category, shop } = product;
-  const cart = useCart();
+  const dispatch = useDispatch();
+  const userId = useSelector((state) => state.auth.user?.userId);
+
+  const { name, price, stock, discount, category, shop, images } = product;
 
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
 
-  // Estado para el talle seleccionado
-  const [selectedSize, setSelectedSize] = useState("");
-  
-  // Calcular precio con descuento
-  const discountedPrice = discount > 0 ? price * (1 - discount / 100) : price;
-  const hasDiscount = discount > 0;
-
-  // Obtener stock por talles
+  // stock viene como array [xs,s,m,l,xl,xxl]
   const stockArray = Array.isArray(stock) ? stock : [0, 0, 0, 0, 0, 0];
   const totalStock = stockArray.reduce((sum, s) => sum + (s || 0), 0);
 
-  // Obtener talles disponibles (con stock > 0)
-  const availableSizes = sizes.filter((_, index) => stockArray[index] > 0);
+  const [selectedSize, setSelectedSize] = useState("");
+  const [quantity, setQuantity] = useState(1);
 
-  // Obtener stock del talle seleccionado
-  const getStockForSize = (size) => {
-    const index = sizes.indexOf(size);
-    return stockArray[index] || 0;
-  };
-
-
+  const hasDiscount = !!discount && discount > 0;
+  const discountedPrice = hasDiscount ? price * (1 - discount / 100) : price;
 
   const handleAddToCart = () => {
     if (!userId) {
-      toast.error("Debes iniciar sesión para agregar productos al carrito", {
-        position: "bottom-right",
-      });
+      toast.error("Tenés que iniciar sesión para agregar al carrito");
       return;
     }
 
-        // Validar que se haya seleccionado un talle
+    if (totalStock <= 0) {
+      toast.error("Este producto no tiene stock disponible");
+      return;
+    }
+
     if (!selectedSize) {
-      toast.error("Por favor selecciona un talle", {
-        position: "bottom-right",
-      });
+      toast.error("Seleccioná un talle antes de agregar al carrito");
       return;
     }
 
-        // Validar que el talle seleccionado tenga stock
-    const sizeStock = getStockForSize(selectedSize);
-    if (sizeStock === 0) {
-      toast.error("El talle seleccionado no tiene stock disponible", {
-        position: "bottom-right",
-      });
+    const idx = sizes.indexOf(selectedSize);
+    if (idx === -1) {
+      toast.error("Talle inválido");
       return;
     }
-    // Obtener la primera imagen del producto para el carrito
-    const firstImageUrl = getFirstImageUrl(product);
+
+    const availableQty = stockArray[idx] || 0;
+    if (availableQty <= 0) {
+      toast.error("No hay stock para ese talle");
+      return;
+    }
+
+    if (quantity > availableQty) {
+      toast.error(`Solo hay ${availableQty} unidades disponibles para este talle`);
+      return;
+    }
+
+    const finalPrice = Number(discountedPrice.toFixed(2));
 
     const cartItem = {
-      productId: product.id,
-      name: product.name,
-      price: discountedPrice,
-      imageUrl: firstImageUrl,
+      productId: product._id || product.id,
+      variantId: null,
       size: selectedSize,
-      stockAvailable: sizeStock,
-      storeName: product.shop?.name,
-      shopId: product.shop?.id,
-      category: product.category,
-      description: product.description,
-      discount: product.discount,
-      originalPrice: product.price,
-      qty: 1,
+      name,
+      price: finalPrice,
+      originalPrice: price,
+      discount: discount || 0,
+      imageUrl: getFirstImageUrl(images),
+      shopId: shop?._id || shop?.id || shop,
+      shopName: shop?.name || shop?.shopName || product.shopName || "Tienda",
+      storeName: shop?.name || shop?.shopName || product.shopName || "Tienda",
+      qty: quantity,
+      maxQty: availableQty,
     };
 
-    cart.addItem(cartItem);
-    toast.success(`${name} (Talle ${selectedSize}) agregado al carrito`, {
-      position: "bottom-right",
+    dispatch(addItem(cartItem));
+    toast.success("Producto agregado al carrito");
+  };
+
+  const handleChangeQty = (delta) => {
+    setQuantity((prev) => {
+      const next = prev + delta;
+      if (next < 1) return 1;
+      return next;
     });
   };
 
   return (
-    <div className="p-4 md:p-8 flex flex-col justify-center space-y-6">
-      {/* Nombre del producto */}
+    <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-          {name || 'Producto sin nombre'}
-        </h1>
+        <h1 className="text-2xl font-bold mb-1">{name}</h1>
         {category && (
           <p className="text-sm text-gray-500 flex items-center gap-1">
-            <Tag size={16} />
-            {category.name}
+            <Tag className="h-4 w-4" />
+            {category}
           </p>
         )}
       </div>
 
       {/* Precio */}
-      <div className="space-y-1">
+      <div className="bg-gray-50 rounded-xl p-4">
         <div className="flex items-baseline gap-3">
-          <span className="text-4xl font-bold text-gray-900">
+          <span className="text-3xl font-bold text-gray-900">
             ${discountedPrice.toFixed(2)}
           </span>
           {hasDiscount && (
             <>
-              <span className="text-2xl text-gray-500 line-through">
+              <span className="text-sm line-through text-gray-400">
                 ${price.toFixed(2)}
               </span>
-              <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+              <span className="text-sm font-semibold text-green-600 flex items-center gap-1">
+                <Tag className="h-4 w-4" />
                 -{discount}%
               </span>
             </>
@@ -124,116 +125,96 @@ export default function ProductInfo({ product }) {
       </div>
 
       {/* Stock total */}
-      <div className="mb-4">
-        <div className="flex items-center gap-2">
-          {totalStock > 0 ? (
-            <>
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span className="text-sm font-medium text-gray-900">
-                En stock ({totalStock} unidades disponibles)
-              </span>
-            </>
-          ) : (
-            <>
-              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-              <span className="text-sm font-medium text-red-600">
-                Sin stock
-              </span>
-            </>
-          )}
+      <div className="mb-2">
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <Package className="h-4 w-4" />
+          <span>
+            Stock total:{" "}
+            <span className="font-semibold">
+              {totalStock > 0 ? totalStock : "Sin stock"}
+            </span>
+          </span>
         </div>
       </div>
 
-      {/* Selector de Talle */}
-      {totalStock > 0 && (
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Selecciona tu talle:
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {sizes.map((size, index) => {
-              const sizeStock = stockArray[index] || 0;
-              const isAvailable = sizeStock > 0;
-              const isSelected = selectedSize === size;
-
-              return (
-                <button
-                  key={size}
-                  type="button"
-                  disabled={!isAvailable}
-                  onClick={() => setSelectedSize(size)}
-                  className={`
-                    relative py-3 px-4 border-2 rounded-lg font-medium text-sm transition-all
-                    ${isSelected 
-                      ? 'border-blue-600 bg-blue-50 text-blue-700' 
-                      : isAvailable
-                        ? 'border-gray-300 hover:border-blue-400 text-gray-900'
-                        : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                    }
-                  `}
-                >
-                  <div className="flex flex-col items-center">
-                    <span className="font-semibold">{size}</span>
-                    {isAvailable && (
-                      <span className="text-xs mt-1 text-gray-600">
-                        {sizeStock} disp.
-                      </span>
-                    )}
-                    {!isAvailable && (
-                      <span className="text-xs mt-1">Sin stock</span>
-                    )}
-                  </div>
-                  {isSelected && (
-                    <div className="absolute top-1 right-1">
-                      <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          {selectedSize && (
-            <p className="text-xs text-gray-600 mt-2">
-              Talle seleccionado: <strong>{selectedSize}</strong> ({getStockForSize(selectedSize)} disponibles)
-            </p>
-          )}
-        </div>
-      )}
-
-
-      {/* Información de la tienda */}
+      {/* Tienda */}
       {shop && (
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Store size={18} className="text-gray-600" />
-            <h3 className="font-semibold text-gray-900">Vendido por</h3>
-          </div>
-          <p className="text-gray-700 font-medium">{shop.name}</p>
-          {shop.address && (
-            <p className="text-sm text-gray-600 mt-1">{shop.address}</p>
-          )}
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <Store className="h-4 w-4" />
+          <span>
+            Vendido por{" "}
+            <span className="font-semibold">
+              {shop.name || shop.shopName || "Tienda"}
+            </span>
+          </span>
         </div>
       )}
 
-      {/* Botón de agregar al carrito */}
-      <button 
-        className={`w-full py-4 rounded-lg flex items-center justify-center gap-2 text-lg font-bold transition-all duration-300 ${
-          totalStock > 0 && selectedSize
-            ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg' 
-            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-        }`}
-        disabled={totalStock === 0 || !selectedSize}
+      {/* Talles */}
+      <div>
+        <p className="text-sm font-medium mb-2">Talles disponibles</p>
+        <div className="flex flex-wrap gap-2">
+          {sizes.map((s, idx) => {
+            const sizeStock = stockArray[idx] || 0;
+            const disabled = sizeStock <= 0;
+
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => !disabled && setSelectedSize(s)}
+                disabled={disabled}
+                className={`px-3 py-1 rounded-full border text-sm
+                  ${
+                    disabled
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed line-through"
+                      : selectedSize === s
+                      ? "bg-black text-white border-black"
+                      : "bg-white text-gray-800 hover:bg-gray-50"
+                  }`}
+              >
+                {s}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Cantidad */}
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium">Cantidad:</span>
+        <div className="flex items-center border rounded-lg">
+          <button
+            type="button"
+            className="h-8 w-8 rounded-l-lg hover:bg-gray-100 text-lg"
+            onClick={() => handleChangeQty(-1)}
+          >
+            −
+          </button>
+          <span className="px-4 text-center min-w-[40px]">{quantity}</span>
+          <button
+            type="button"
+            className="h-8 w-8 rounded-r-lg hover:bg-gray-100 text-lg"
+            onClick={() => handleChangeQty(1)}
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      {/* Botón agregar al carrito */}
+      <button
+        type="button"
         onClick={handleAddToCart}
+        disabled={totalStock <= 0}
+        className="mt-2 w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-semibold flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
       >
-        <ShoppingCart size={22} />
-        {totalStock === 0 
-          ? 'Sin stock' 
+        <ShoppingCart className="h-5 w-5" />
+        {totalStock <= 0
+          ? "Sin stock"
           : !selectedSize
-            ? 'Selecciona un talle'
-            : 'Agregar al carrito'
-        }
+          ? "Selecciona un talle"
+          : "Agregar al carrito"}
       </button>
 
       {totalStock > 0 && totalStock < 5 && (

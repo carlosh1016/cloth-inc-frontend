@@ -1,178 +1,221 @@
 // src/views/Cart.jsx
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Navigate, useNavigate } from "react-router-dom";
-import { useCart } from "../components/CartContext";
 import { toast } from "react-toastify";
 import Header from "../components/Header";
+import {
+  clearCart,
+  removeItem,
+  setItemQty,
+  selectCartItems,
+  selectCartSubtotal,
+  selectCartCount,
+} from "../redux/cartSlice";
 
 export default function Cart() {
-  // 1) Guard de sesión
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  // Guard de sesión
   const { token } = useSelector((state) => state.auth);
   if (!token) return <Navigate to="/login" replace />;
 
-  const navigate = useNavigate();
-
-  // 2) Obtenemos el carrito del contexto
-  const cart = useCart();
-  const items = cart?.items ?? [];
-  const subtotal = cart?.subtotal ?? 0;
-  const setQty = cart?.setQty ?? (() => {});
-  const removeItem = cart?.removeItem ?? (() => {});
+  const items = useSelector(selectCartItems);
+  const subtotal = useSelector(selectCartSubtotal);
+  const count = useSelector(selectCartCount);
 
   const handleIncreaseQty = (item) => {
-    if (item.qty >= item.stock) {
-      toast.warning(`Solo hay ${item.stock} unidades disponibles`, { 
-        position: "bottom-right",
-        autoClose: 3000
-      });
+    const next = item.qty + 1;
+    if (item.maxQty != null && next > item.maxQty) {
+      toast.info(`Stock máximo: ${item.maxQty} unidades`);
       return;
     }
-    setQty(item.productId, item.qty + 1, { variantId: item.variantId, size: item.size });
+    dispatch(
+      setItemQty({
+        productId: item.productId,
+        variantId: item.variantId,
+        size: item.size,
+        qty: next,
+      })
+    );
   };
 
   const handleDecreaseQty = (item) => {
-    setQty(item.productId, item.qty - 1, { variantId: item.variantId, size: item.size });
+    const next = item.qty - 1;
+    dispatch(
+      setItemQty({
+        productId: item.productId,
+        variantId: item.variantId,
+        size: item.size,
+        qty: next,
+      })
+    );
+  };
+
+  const handleRemove = (item) => {
+    dispatch(
+      removeItem({
+        productId: item.productId,
+        variantId: item.variantId,
+        size: item.size,
+      })
+    );
+  };
+
+  const handleClear = () => {
+    if (items.length === 0) return;
+    dispatch(clearCart());
+    toast.info("Carrito vaciado");
   };
 
   const handleGoToCheckout = () => {
     if (items.length === 0) {
-      toast.info("Tu carrito está vacío");
+      toast.error("Tu carrito está vacío");
       return;
     }
     navigate("/checkout");
   };
 
+  const isEmpty = items.length === 0;
+
   return (
     <>
-    <Header />
-    <main className="mx-auto max-w-5xl px-6 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">
-        Mi Carrito {items.length > 0 && `(${items.length} ${items.length === 1 ? 'producto' : 'productos'})`}
-      </h1>
+      <Header />
+      <main className="max-w-6xl mx-auto px-4 py-6 flex flex-col md:flex-row gap-6">
+        {/* Columna izquierda: lista de items */}
+        <section className="flex-1 bg-white rounded-xl shadow-sm p-4">
+          <h1 className="text-2xl font-bold mb-4">Tu carrito</h1>
 
-      {/* Lista */}
-      <div className="space-y-4 mb-8">
-        {items.length === 0 && (
-          <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
-            <div className="text-6xl mb-4">🛒</div>
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">Tu carrito está vacío</h2>
-            <p className="text-gray-500 mb-6">Agrega productos para comenzar tu compra</p>
-            <button 
-              onClick={() => navigate("/")}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Ir a la tienda
-            </button>
-          </div>
-        )}
-
-        {items.map((it) => {
-          const key = `${it.productId}::${it.variantId ?? ""}::${it.size ?? ""}`;
-          return (
-            <article
-              key={key}
-              className="flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start gap-4 flex-1">
-                <img
-                  src={it.imageUrl || "/placeholder.png"}
-                  alt={it.name}
-                  className="h-20 w-20 rounded-lg object-cover border-2 border-gray-100"
-                />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">{it.name}</h3>
-                  <div className="flex flex-wrap gap-2 text-sm text-gray-600 mb-3">
-                    <span className="bg-gray-100 px-2 py-1 rounded">
-                      📏 Talle: <span className="font-medium text-gray-800">{it.size ?? "-"}</span>
-                    </span>
-                    <span className="bg-blue-50 px-2 py-1 rounded">
-                      🏪 {it.storeName ?? "Sin tienda"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 border rounded-lg">
-                      <button
-                        className="h-8 w-8 rounded-l-lg hover:bg-gray-100 transition-colors font-bold text-gray-700"
-                        onClick={() => handleDecreaseQty(it)}
-                      >
-                        −
-                      </button>
-                      <span className="px-3 min-w-[40px] text-center font-semibold text-gray-900">{it.qty ?? 1}</span>
-                      <button
-                        className={`h-8 w-8 rounded-r-lg hover:bg-gray-100 transition-colors font-bold text-gray-700 ${
-                          it.qty >= it.stock ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                        onClick={() => handleIncreaseQty(it)}
-                        disabled={it.qty >= it.stock}
-                      >
-                        +
-                      </button>
+          {isEmpty ? (
+            <div className="text-center py-12">
+              <p className="text-lg font-semibold mb-2">
+                Tu carrito está vacío
+              </p>
+              <p className="text-sm text-gray-500 mb-4">
+                Agregá productos desde el catálogo para verlos acá.
+              </p>
+              <button
+                onClick={() => navigate("/")}
+                className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold"
+              >
+                Ir a la tienda
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {items.map((it) => (
+                <div
+                  key={`${it.productId}-${it.variantId ?? ""}-${it.size ?? ""}`}
+                  className="flex gap-4 border-b pb-4 last:border-b-0"
+                >
+                  {it.imageUrl && (
+                    <img
+                      src={it.imageUrl}
+                      alt={it.name}
+                      className="w-24 h-24 object-cover rounded-lg border"
+                    />
+                  )}
+                  <div className="flex-1 flex flex-col justify-between">
+                    <div>
+                      <h2 className="font-semibold text-gray-900">
+                        {it.name}
+                      </h2>
+                      <div className="flex flex-wrap gap-2 text-xs text-gray-600 mt-1">
+                        <span className="bg-gray-100 px-2 py-1 rounded">
+                          Talle:{" "}
+                          <span className="font-medium">
+                            {it.size ?? "-"}
+                          </span>
+                        </span>
+                        <span className="bg-blue-50 px-2 py-1 rounded">
+                          🏪 {it.shopName ?? it.storeName ?? "Sin tienda"}
+                        </span>
+                      </div>
                     </div>
 
-                    <button
-                      className="text-sm text-rose-600 hover:text-rose-700 hover:underline font-medium flex items-center gap-1"
-                      onClick={() => removeItem(it.productId, { variantId: it.variantId, size: it.size })}
-                    >
-                      🗑️ Eliminar
-                    </button>
+                    <div className="flex items-center justify-between mt-3">
+                      <div className="flex items-center gap-1 border rounded-lg">
+                        <button
+                          className="h-8 w-8 rounded-l-lg hover:bg-gray-100 transition-colors font-bold text-gray-700"
+                          onClick={() => handleDecreaseQty(it)}
+                        >
+                          −
+                        </button>
+                        <span className="px-3 min-w-[40px] text-center font-semibold">
+                          {it.qty}
+                        </span>
+                        <button
+                          className="h-8 w-8 rounded-r-lg hover:bg-gray-100 transition-colors font-bold text-gray-700"
+                          onClick={() => handleIncreaseQty(it)}
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <span className="font-semibold text-gray-900">
+                          ${(it.price * it.qty).toFixed(2)}
+                        </span>
+                        <button
+                          className="text-sm text-red-500 hover:underline"
+                          onClick={() => handleRemove(it)}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  {it.qty >= it.stock && (
-                    <p className="text-xs text-orange-600 mt-2 flex items-center gap-1">
-                      ⚠️ Stock máximo alcanzado
-                    </p>
-                  )}
                 </div>
-              </div>
+              ))}
 
-              <div className="text-right min-w-[100px]">
-                <div className="text-xl font-bold text-gray-900">
-                  ${Number((it.price ?? 0) * (it.qty ?? 1)).toFixed(2)}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  ${Number(it.price ?? 0).toFixed(2)} c/u
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+              <button
+                onClick={handleClear}
+                className="mt-4 text-sm text-red-500 hover:underline"
+              >
+                Vaciar carrito
+              </button>
+            </div>
+          )}
+        </section>
 
-      {/* Resumen */}
-      <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-md max-w-xl">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Resumen del pedido</h2>
-        <div className="space-y-3 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Subtotal</span>
-            <span className="font-medium text-gray-900">${Number(subtotal).toFixed(2)}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Envío</span>
-            <span className="font-medium text-green-600">Gratis</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Impuestos</span>
-            <span className="font-medium text-gray-900">—</span>
-          </div>
-          <div className="border-t pt-3 mt-3 flex items-center justify-between">
-            <span className="text-lg font-bold text-gray-900">Total</span>
-            <span className="text-2xl font-bold text-blue-600">${Number(subtotal).toFixed(2)}</span>
-          </div>
-        </div>
+        {/* Columna derecha: resumen */}
+        <section className="w-full md:w-80 bg-white rounded-xl shadow-sm p-4 h-fit">
+          <h2 className="text-lg font-semibold mb-4">Resumen</h2>
 
-        <button
-           disabled={items.length === 0}
-           onClick={handleGoToCheckout}
-           className="mt-6 w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2">
-          🧾 Continuar con la compra
-        </button>
+          <div className="flex justify-between text-sm mb-2">
+            <span>Productos ({count})</span>
+            <span>${subtotal.toFixed(2)}</span>
+          </div>
 
-        {items.length > 0 && (
-          <p className="text-xs text-gray-500 text-center mt-3">
-            Al finalizar la compra aceptas nuestros términos y condiciones
-          </p>
-        )}
-      </section>
-    </main>
-  </>
+          <div className="flex justify-between text-sm mb-2">
+            <span>Envío</span>
+            <span className="text-green-600 font-medium">A calcular</span>
+          </div>
+
+          <hr className="my-3" />
+
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-base font-semibold">Total estimado</span>
+            <span className="text-xl font-bold text-gray-900">
+              ${subtotal.toFixed(2)}
+            </span>
+          </div>
+
+          <button
+            onClick={handleGoToCheckout}
+            disabled={isEmpty}
+            className="mt-2 w-full rounded-lg bg-blue-600 px-4 py-3 text-white font-semibold flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            🧾 Continuar con la compra
+          </button>
+
+          {!isEmpty && (
+            <p className="text-xs text-gray-500 text-center mt-3">
+              Al finalizar la compra aceptás nuestros términos y condiciones
+            </p>
+          )}
+        </section>
+      </main>
+    </>
   );
 }
