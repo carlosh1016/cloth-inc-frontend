@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { filesToBase64, validateImageFile, imagesToUrls } from "../../utils/imageUtils";
+import { useDispatch } from "react-redux";
+import { fetchCategories, selectCategories, selectCategoriesLoading, selectCategoriesError } from "../../redux/categoriesSlice";
 
 const API_URL = "http://localhost:4003";
 
@@ -16,10 +18,13 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
   });
   const [imagePreviews, setImagePreviews] = useState([]);
   const [imageBase64Array, setImageBase64Array] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [loadingCategories, setLoadingCategories] = useState(true);
   const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const categories = useSelector(selectCategories);
+  const loadingCategories = useSelector(selectCategoriesLoading);
+  const categoriesError = useSelector(selectCategoriesError);
+  
 
   const { token, user } = useSelector((state) => state.auth);
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
@@ -29,25 +34,17 @@ const UpdateClothModal = ({ product, onClose, onProductUpdated }) => {
     sizes.map(() => 0)
   );
 
-  // Cargar categorías
+   // Cargar categorías al montar el componente
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch(`${API_URL}/category`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Error al cargar categorías");
-        const data = await res.json();
-        setCategories(data);
-      } catch (err) {
-        toast.error("Error al cargar categorías", { position: "bottom-right" });
-      } finally {
-        setLoadingCategories(false);
-      }
-    };
-
-    fetchCategories();
-  }, [token]);
+    if (categories.length === 0 && !loadingCategories) {
+      dispatch(fetchCategories());
+    }
+    
+    // Seleccionar la primera categoría por defecto si existe
+    if (categories.length > 0 && !form.category) {
+      setForm(prev => ({ ...prev, category: categories[0].id }));
+    }
+  }, [dispatch, categories, loadingCategories, form.category]);
 
   // Prellenar el formulario con los datos del producto
   useEffect(() => {
