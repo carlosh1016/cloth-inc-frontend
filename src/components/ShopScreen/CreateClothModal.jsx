@@ -22,7 +22,7 @@ const CreateProductModal = ({ onClose, onProductCreated, shopId }) => {
   const [error, setError] = useState(null);
   const dispatch = useDispatch();
   const { token } = useSelector((state) => state.auth);
-  const categories = useSelector(selectCategories);
+  const categories = useSelector(selectCategories) || [];
   const loadingCategories = useSelector(selectCategoriesLoading);
   const categoriesError = useSelector(selectCategoriesError);
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
@@ -330,7 +330,7 @@ const CreateProductModal = ({ onClose, onProductCreated, shopId }) => {
                   className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Selecciona una categoría</option>
-                  {categories.map((cat) => (
+                  {Array.isArray(categories) && categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}
                     </option>

@@ -1,14 +1,33 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-const URL= ""; //no me acuerdo la url y no tengo para verla ahora
+const API_URL = "http://localhost:4003";
 
 // Traer categorias
 export const fetchCategories = createAsyncThunk(
   "categories/fetchCategories",
-  async () => {
-    const { data } = await axios.get(URL);
-    return data;
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const state = getState();
+      const token = state.auth?.token;
+
+      if (!token) {
+        return rejectWithValue("No hay token de autenticación disponible");
+      }
+
+      const { data } = await axios.get(`${API_URL}/category`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      return data;
+    } catch (error) {
+      if (error.response) {
+        return rejectWithValue(error.response.data?.message || error.response.statusText);
+      }
+      return rejectWithValue(error.message || "Error al cargar las categorías");
+    }
   }
 );
 
@@ -32,15 +51,15 @@ const categoriesSlice = createSlice({
       })
       .addCase(fetchCategories.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error?.message || "Error al cargar las categorías";
       })
   }
 });
 
 
 // Selectores
-export const selectCategories = state => state.categories.items;
-export const selectCategoriesLoading = state => state.categories.loading;
-export const selectCategoriesError = state => state.categories.error;
+export const selectCategories = state => state.categories?.items ?? [];
+export const selectCategoriesLoading = state => state.categories?.loading ?? false;
+export const selectCategoriesError = state => state.categories?.error ?? null;
 
 export default categoriesSlice.reducer;
