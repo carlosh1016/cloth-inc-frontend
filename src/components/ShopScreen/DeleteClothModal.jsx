@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 
-const API_URL = "http://localhost:4003";
+import { deleteCloth } from "../../redux/clothSlice";
 
 const DeleteProductModal = ({ product, onClose, onProductDeleted }) => {
   const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
   const token = useSelector((state) => state.auth.token);
 
   const handleDelete = async () => {
@@ -17,15 +18,7 @@ const DeleteProductModal = ({ product, onClose, onProductDeleted }) => {
     setLoading(true);
     try {
       const productId = product._id || product.id;
-      const res = await fetch(`${API_URL}/cloth/${productId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) throw new Error("Error al eliminar el producto");
+      await dispatch(deleteCloth({ id: productId, token })).unwrap();
 
       toast.success("Producto eliminado exitosamente", { position: "bottom-right" });
       
@@ -37,7 +30,8 @@ const DeleteProductModal = ({ product, onClose, onProductDeleted }) => {
       onClose();
     } catch (err) {
       console.error(err);
-      toast.error(err.message, { position: "bottom-right" });
+      const errorMessage = err?.message || err || "Error al eliminar el producto";
+      toast.error(errorMessage, { position: "bottom-right" });
     } finally {
       setLoading(false);
     }

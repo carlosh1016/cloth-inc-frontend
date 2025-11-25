@@ -50,6 +50,25 @@ export const updateCloth = createAsyncThunk(
   }
 );
 
+// Eliminar cloth
+export const deleteCloth = createAsyncThunk(
+  "cloth/deleteCloth",
+  async ({ id, token }, { rejectWithValue }) => {
+    try {
+      const res = await fetch(`${URL}/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) throw new Error("Error al eliminar el cloth");
+      return id;
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
 const clothSlice = createSlice({
   name: 'cloths',
   initialState: {
@@ -90,6 +109,20 @@ const clothSlice = createSlice({
         }
       })
       .addCase(updateCloth.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(deleteCloth.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteCloth.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = state.items.filter(
+          (item) => item.id !== action.payload && item._id !== action.payload
+        );
+      })
+      .addCase(deleteCloth.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
