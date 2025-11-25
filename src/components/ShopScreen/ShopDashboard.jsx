@@ -66,7 +66,7 @@ const ShopDashboard = ({ shop }) => {
 
       {showCreate && <CreateClothModal shopId={shop.id} onClose={() => setShowCreate(false)} onClothCreated={(c)=>{ setShowCreate(false); dispatch(fetchCloths()); }} />}
       {editing && <UpdateClothModal cloth={editing} onClose={() => setEditing(null)} onClothUpdated={()=>{ setEditing(null); dispatch(fetchCloths()); }} />}
-      {deleting && <DeleteClothModal product={deleting} onClose={() => setDeleting(null)} onClothCreated={()=>{ setDeleting(null); dispatch(fetchCloths()); }} />}
+      {deleting && <DeleteClothModal product={deleting} onClose={() => setDeleting(null)} onProductDeleted={()=>{ setDeleting(null); dispatch(fetchCloths()); }} />}
     </div>
   );
 };

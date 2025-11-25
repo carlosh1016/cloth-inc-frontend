@@ -86,15 +86,35 @@ export const createShopWithOwnership = createAsyncThunk(
         return rejectWithValue({ status: err.response?.status || null, message: errorMessage });
       }
 
+      // Verificar que tenemos un ID válido del shop
+      const shopId = newShop?.id;
+      if (!shopId) {
+        return rejectWithValue({ 
+          status: 400, 
+          message: "El shop se creó pero no se pudo obtener su ID" 
+        });
+      }
+
+      // Convertir IDs a números explícitamente
+      const userIdNum = typeof userId === "string" ? parseInt(userId, 10) : userId;
+      const shopIdNum = typeof shopId === "string" ? parseInt(shopId, 10) : shopId;
+
+      // Crear ownership con el formato correcto según la documentación de la API
       try {
-        await axios.post(`${API_URL}/api/ownerships`, { user_id: userId, shop_id: newShop.id }, {
+        await axios.post(`${API_URL}/api/ownerships`, {
+          user: { id: userIdNum },
+          shop: { id: shopIdNum }
+        }, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        // Devolver la shop creada
+        
         return newShop;
       } catch (err) {
-        const errorMessage = err.response?.data || err.message || "Error al crear ownership";
-        return rejectWithValue({ status: err.response?.status || null, message: errorMessage });
+        const errorMessage = err.response?.data?.message || err.response?.data || err.message || "Error al crear ownership";
+        return rejectWithValue({ 
+          status: err.response?.status || 400, 
+          message: errorMessage 
+        });
       }
     } catch (err) {
       return rejectWithValue({ status: null, message: err.message || "Error de red" });

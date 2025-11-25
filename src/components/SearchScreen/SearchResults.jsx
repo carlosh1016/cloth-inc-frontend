@@ -17,6 +17,7 @@ import ProductCard from "../ProductCard";
 const SearchResults = ({ 
   products = [], 
   loading = false, 
+  isSearching = false,
   error = null, 
   totalProducts = 0,
   filteredCount = 0,
@@ -94,7 +95,7 @@ const SearchResults = ({
   }
 
   // Sin resultados
-  if (!loading && products.length === 0) {
+  if (!loading && !isSearching && products.length === 0) {
     return (
       <div className={`space-y-6 ${className}`}>
         <div className="flex items-center justify-center py-12">

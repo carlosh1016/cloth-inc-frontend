@@ -1,18 +1,26 @@
 import { useState } from "react";
+import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 
 const API_URL = "http://localhost:4003";
 
 const DeleteProductModal = ({ product, onClose, onProductDeleted }) => {
   const [loading, setLoading] = useState(false);
-  const token = localStorage.getItem("cloth-inc-token");
+  const token = useSelector((state) => state.auth.token);
 
   const handleDelete = async () => {
+    if (!token) {
+      toast.error("No estás autenticado", { position: "bottom-right" });
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/cloth/${product.id}`, {
+      const productId = product._id || product.id;
+      const res = await fetch(`${API_URL}/cloth/${productId}`, {
         method: "DELETE",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
@@ -20,7 +28,12 @@ const DeleteProductModal = ({ product, onClose, onProductDeleted }) => {
       if (!res.ok) throw new Error("Error al eliminar el producto");
 
       toast.success("Producto eliminado exitosamente", { position: "bottom-right" });
-      onProductDeleted(product.id);
+      
+      // Llamar al callback antes de cerrar para actualizar la lista
+      if (onProductDeleted && typeof onProductDeleted === 'function') {
+        onProductDeleted(productId);
+      }
+      
       onClose();
     } catch (err) {
       console.error(err);

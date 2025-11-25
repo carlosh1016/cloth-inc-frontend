@@ -14,24 +14,53 @@ const RegisterForm = () => {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [isVendedor, setIsVendedor] = useState(false);
+    const [emailError, setEmailError] = useState("");
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const { status } = useSelector((state) => state.register);
     
+    // Función para validar formato de email
+    const isValidEmail = (email) => {
+        // Regex estándar para validar formato de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
+
+    // Manejar cambio de email con validación en tiempo real
+    const handleEmailChange = (e) => {
+        const value = e.target.value;
+        setEmail(value);
+        
+        // Validar solo si el campo no está vacío
+        if (value.trim() && !isValidEmail(value)) {
+            setEmailError("Formato de correo inválido");
+        } else {
+            setEmailError("");
+        }
+    };
+    
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        // Validación de contraseñas
-        if (password !== confirmPassword) {
-            toast.error("Las contraseñas no coinciden", {
+        // Validación de campos vacíos
+        if (!username || !name || !surname || !email || !phone || !password) {
+            toast.warning("Por favor, completa todos los campos", {
                 position: "bottom-right"
             });
             return;
         }
 
-        // Validación de campos vacíos
-        if (!username || !name || !surname || !email || !phone || !password) {
-            toast.warning("Por favor, completa todos los campos", {
+        // Validación de formato de email
+        if (!isValidEmail(email)) {
+            toast.error("Por favor, ingresa un correo electrónico válido", {
+                position: "bottom-right"
+            });
+            return;
+        }
+        
+        // Validación de contraseñas
+        if (password !== confirmPassword) {
+            toast.error("Las contraseñas no coinciden", {
                 position: "bottom-right"
             });
             return;
@@ -137,10 +166,15 @@ const RegisterForm = () => {
                             type="email" 
                             id="email"
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            onChange={handleEmailChange}
                             placeholder="Ingresa tu email" 
-                            className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-sky-600 sm:text-sm/6"
+                            className={`block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 sm:text-sm/6 ${
+                                emailError ? "outline-red-500 focus:outline-red-500" : "focus:outline-sky-600"
+                            }`}
                             />
+                            {emailError && (
+                                <p className="mt-1 text-sm text-red-600">{emailError}</p>
+                            )}
                         </div>
                         <div>
                             <label htmlFor="phone" className="block text-sm/6 font-medium text-gray-900">Teléfono</label>

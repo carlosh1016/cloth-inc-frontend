@@ -116,6 +116,7 @@ const Search = () => {
             <SearchResults
               products={filteredProducts}
               loading={loading}
+              isSearching={isSearching}
               error={error}
               totalProducts={totalProducts}
               filteredCount={filteredCount}

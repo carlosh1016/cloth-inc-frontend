@@ -281,52 +281,97 @@ export default function Checkout() {
       await Promise.all(orderPromises);
 
       // Actualizar stock por talle de cada producto
+      // Agrupar items por productId para evitar condiciones de carrera
       const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
-
-      const stockUpdatePromises = items.map(async (item) => {
-        // Obtener el producto completo para tener el array de stock actual
-        const getResponse = await fetch(
-          `http://localhost:4003/cloth/${item.productId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (!getResponse.ok) {
-          console.error(`Error al obtener producto ${item.name}`);
-          return;
+      
+      // Agrupar items por productId: { [productId]: [item1, item2, ...] }
+      const itemsByProduct = items.reduce((acc, item) => {
+        const productId = item.productId;
+        if (!acc[productId]) {
+          acc[productId] = [];
         }
+        acc[productId].push(item);
+        return acc;
+      }, {});
 
-        const productData = await getResponse.json();
-        const currentStockArray = Array.isArray(productData.stock)
-          ? productData.stock
-          : [0, 0, 0, 0, 0, 0];
-
-        // Actualizar solo el stock del talle específico
-        const sizeIndex = sizes.indexOf(item.size);
-        if (sizeIndex !== -1) {
-          const newStockArray = [...currentStockArray];
-          newStockArray[sizeIndex] = Math.max(
-            0,
-            currentStockArray[sizeIndex] - item.qty
+      // Procesar cada producto una sola vez
+      const stockUpdatePromises = Object.entries(itemsByProduct).map(
+        async ([productId, productItems]) => {
+          // Obtener el producto completo una sola vez
+          const getResponse = await fetch(
+            `http://localhost:4003/cloth/${productId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
           );
+
+          if (!getResponse.ok) {
+            console.error(
+              `Error al obtener producto ${productItems[0]?.name || productId}`
+            );
+            return;
+          }
+
+          const productData = await getResponse.json();
+          const currentStockArray = Array.isArray(productData.stock)
+            ? productData.stock
+            : [0, 0, 0, 0, 0, 0];
+
+          // Calcular todas las actualizaciones de stock para todos los talles de este producto
+          const newStockArray = [...currentStockArray];
+          
+          productItems.forEach((item) => {
+            const sizeIndex = sizes.indexOf(item.size);
+            if (sizeIndex !== -1) {
+              // Restar la cantidad comprada del stock del talle correspondiente
+              newStockArray[sizeIndex] = Math.max(
+                0,
+                newStockArray[sizeIndex] - item.qty
+              );
+            }
+          });
+
+          // Formatear imágenes: array de base64 sin prefijo data:image/...
+          let imagesForBackend = [];
+          if (productData.images && Array.isArray(productData.images)) {
+            imagesForBackend = productData.images.map((img) => {
+              if (typeof img === 'string') {
+                // Si es string, quitar el prefijo si existe
+                return img.includes(',') ? img.split(',')[1] : img;
+              } else if (img && img.imageBase64) {
+                // Si es objeto con imageBase64, quitar el prefijo si existe
+                const base64 = img.imageBase64;
+                return base64.includes(',') ? base64.split(',')[1] : base64;
+              }
+              return img;
+            });
+          } else if (productData.imageBase64) {
+            // Formato antiguo: string único
+            const base64 = productData.imageBase64;
+            imagesForBackend = [base64.includes(',') ? base64.split(',')[1] : base64];
+          }
+
+          // Asegurar que category sea un número entero
+          const categoryId = productData.category?.id ?? productData.category;
+          const categoryNumber = typeof categoryId === 'number' 
+            ? categoryId 
+            : parseInt(categoryId, 10);
 
           const updatedProduct = {
             name: productData.name,
             description: productData.description,
-            image: productData.image,
+            images: imagesForBackend,
             price: productData.price,
-            size: item.size,
-            category: productData.category?.id ?? productData.category,
+            size: productData.size || "M", // Usar el size del producto original
+            category: categoryNumber,
             stock: newStockArray,
-            discount: productData.discount,
-            shop: productData.shop,
+            discount: productData.discount || 0,
           };
 
           const response = await fetch(
-            `http://localhost:4003/cloth/${item.productId}`,
+            `http://localhost:4003/cloth/${productId}`,
             {
               method: "PUT",
               headers: {
@@ -339,13 +384,13 @@ export default function Checkout() {
 
           if (!response.ok) {
             console.error(
-              `Error al actualizar stock del producto ${item.name}`
+              `Error al actualizar stock del producto ${productData.name}`
             );
           }
 
           return response;
         }
-      });
+      );
 
       await Promise.all(stockUpdatePromises);
 

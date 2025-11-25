@@ -111,7 +111,16 @@ export const searchProductsLocally = (products, searchParams = {}) => {
 
   // Filtro por stock
   if (searchParams.stockOnly) {
-    filtered = filtered.filter(product => product.stock > 0);
+    filtered = filtered.filter(product => {
+      // El stock viene como array [XS, S, M, L, XL, XXL]
+      if (Array.isArray(product.stock)) {
+        // Calcular el total sumando todos los valores del array
+        const totalStock = product.stock.reduce((sum, s) => sum + (s || 0), 0);
+        return totalStock > 0;
+      }
+      // Compatibilidad: si no es array, tratarlo como número
+      return (product.stock || 0) > 0;
+    });
   }
 
   // Filtro por descuento
