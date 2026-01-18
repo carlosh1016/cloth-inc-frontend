@@ -1,5 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { isDemo } from "../config/mode";
+import { demoCloths } from "../demo";
+
 
 const URL = "http://localhost:4003/cloth";
 
@@ -7,8 +10,11 @@ const URL = "http://localhost:4003/cloth";
 export const fetchCloths = createAsyncThunk(
   "cloth/fetchCloths",
   async () => {
-    const { data } = await axios.get(URL);
-    return data;
+  if (isDemo) {
+    return demoCloths;
+  }
+  const { data } = await axios.get(URL);
+  return data;
   }
 );
 
@@ -16,6 +22,13 @@ export const fetchCloths = createAsyncThunk(
 export const createCloth = createAsyncThunk(
   "cloth/createCloth",
   async ({ cloth, token }, thunkAPI) => {
+    if (isDemo) {
+      return {
+        ...cloth,
+        id: Date.now(),
+      };
+    }
+
     try {
       const { data } = await axios.post(URL, cloth, {
         headers: { Authorization: `Bearer ${token}` },

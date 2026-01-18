@@ -1,9 +1,21 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { isDemo } from '../config/mode';
+import { demoLogin } from '../demo';
+
 
 // Thunk asíncrono para hacer el login
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async ({ email, password }, { rejectWithValue }) => {
+    if (isDemo) {
+      return {
+        token: 'demo-token',
+        role: 'OWNER',
+        shopId: 1,
+        userId: 1,
+      };
+    }
+
     try {
       const response = await fetch('http://localhost:4003/api/v1/auth/authenticate', {
         method: 'POST',

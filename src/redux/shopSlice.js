@@ -1,5 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
+import { isDemo } from "../config/mode";
+
 
 const API_URL = "http://localhost:4003";
 
@@ -8,6 +10,14 @@ export const UPLOADED_FILE = "/mnt/data/Untitled (1).pdf";
 export const fetchShopForUser = createAsyncThunk(
   "shop/fetchShopForUser",
   async (_, { getState, rejectWithValue }) => {
+    if (isDemo) {
+      return {
+        id: 1,
+        name: 'Demo Shop',
+        address: 'Calle Demo 123',
+        cuit: '20-00000000-0',
+      };
+    }
     try {
       const state = getState();
       const token = state.auth?.token;
@@ -65,6 +75,15 @@ export const fetchShopForUser = createAsyncThunk(
 export const createShopWithOwnership = createAsyncThunk(
   "shop/createShopWithOwnership",
   async ({ name, address, cuit }, { getState, rejectWithValue }) => {
+  if (isDemo) {
+      return {
+        id: 1,
+        name,
+        address,
+        cuit,
+      };
+    }
+
     try {
       const state = getState();
       const token = state.auth?.token;
